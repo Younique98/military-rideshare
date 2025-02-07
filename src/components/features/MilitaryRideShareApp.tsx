@@ -192,7 +192,7 @@ const MilitaryRideShareApp = () => {
 
                         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">
                             Grab a ride with{' '}
-                            <span className="text-blue-600">Base Link</span>
+                            <span className="text-brand-accent">Base Link</span>
                         </h1>
                         <p className="mt-4 text-lg text-gray-600 max-w-2xl">
                             Secure, verified rides exclusively for military
@@ -209,12 +209,36 @@ const MilitaryRideShareApp = () => {
                         </div>
 
                         {/* Request Ride Button */}
-                        <button
-                            onClick={() => setActiveView('ride')}
-                            className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
-                        >
-                            Request a Ride
-                        </button>
+                                                <div className="mt-8 space-y-4">
+          <button 
+            style={{ backgroundColor: '#2E5C8A' }}
+                    className="w-full py-3 text-white rounded-lg hover:opacity-90"
+                    onClick={() => setActiveView('ride')}
+          >
+            Request a Ride
+          </button>
+          <div 
+            style={{ backgroundColor: '#F8F9FA', borderLeftColor: '#2E5C8A' }}
+            className="p-6 rounded-lg shadow border-l-4"
+          >
+            <div className="flex items-center space-x-4">
+              <div 
+                style={{ backgroundColor: '#1B4075' }}
+                className="h-12 w-12 rounded-full flex items-center justify-center"
+              >
+                <span style={{ color: '#E5B94E' }}>★</span>
+              </div>
+              <div>
+                <h3 style={{ color: '#2E5C8A' }} className="font-semibold">
+                  Military Verified
+                </h3>
+                <p style={{ color: '#687864' }}>
+                  All drivers are ID.me verified
+                </p>
+              </div>
+            </div>
+          </div>
+          </div>
 
                         {/* Popular Locations */}
                         <div>
