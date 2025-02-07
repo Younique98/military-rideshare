@@ -13,6 +13,8 @@ import {
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import Image from 'next/image'
+import UserAvatar from '../ui/UserAvatar'
+import { handleImageUpload } from '@/utils/imageUpload'
 
 const MilitaryRideShareApp = () => {
     const [activeView, setActiveView] = useState('main') // main, ride, profile
@@ -209,36 +211,44 @@ const MilitaryRideShareApp = () => {
                         </div>
 
                         {/* Request Ride Button */}
-                                                <div className="mt-8 space-y-4">
-          <button 
-            style={{ backgroundColor: '#2E5C8A' }}
-                    className="w-full py-3 text-white rounded-lg hover:opacity-90"
-                    onClick={() => setActiveView('ride')}
-          >
-            Request a Ride
-          </button>
-          <div 
-            style={{ backgroundColor: '#F8F9FA', borderLeftColor: '#2E5C8A' }}
-            className="p-6 rounded-lg shadow border-l-4"
-          >
-            <div className="flex items-center space-x-4">
-              <div 
-                style={{ backgroundColor: '#1B4075' }}
-                className="h-12 w-12 rounded-full flex items-center justify-center"
-              >
-                <span style={{ color: '#E5B94E' }}>★</span>
-              </div>
-              <div>
-                <h3 style={{ color: '#2E5C8A' }} className="font-semibold">
-                  Military Verified
-                </h3>
-                <p style={{ color: '#687864' }}>
-                  All drivers are ID.me verified
-                </p>
-              </div>
-            </div>
-          </div>
-          </div>
+                        <div className="mt-8 space-y-4">
+                            <button
+                                style={{ backgroundColor: '#2E5C8A' }}
+                                className="w-full py-3 text-white rounded-lg hover:opacity-90"
+                                onClick={() => setActiveView('ride')}
+                            >
+                                Request a Ride
+                            </button>
+                            <div
+                                style={{
+                                    backgroundColor: '#F8F9FA',
+                                    borderLeftColor: '#2E5C8A',
+                                }}
+                                className="p-6 rounded-lg shadow border-l-4"
+                            >
+                                <div className="flex items-center space-x-4">
+                                    <div
+                                        style={{ backgroundColor: '#1B4075' }}
+                                        className="h-12 w-12 rounded-full flex items-center justify-center"
+                                    >
+                                        <span style={{ color: '#E5B94E' }}>
+                                            ★
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h3
+                                            style={{ color: '#2E5C8A' }}
+                                            className="font-semibold"
+                                        >
+                                            Military Verified
+                                        </h3>
+                                        <p style={{ color: '#687864' }}>
+                                            All drivers are ID.me verified
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Popular Locations */}
                         <div>
@@ -374,9 +384,17 @@ const MilitaryRideShareApp = () => {
                     <div className="space-y-8">
                         <div className="bg-white p-6 rounded-lg shadow">
                             <div className="flex items-center space-x-4">
-                                <div className="h-16 w-16 bg-gray-200 rounded-full flex items-center justify-center">
-                                    <User className="h-8 w-8 text-gray-500" />
-                                </div>
+                                <UserAvatar
+                                    imageUrl=""
+                                    size="md"
+                                    editable
+                                    onImageUpload={(file) => {
+                                        // Handle file upload here
+                                        // TODO: (ET) Handle FIle upload
+                                        handleImageUpload(file)
+                                        console.log('Uploading file:', file)
+                                    }}
+                                />
                                 <div>
                                     <h3 className="font-semibold text-lg">
                                         John Doe
