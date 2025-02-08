@@ -1,7 +1,9 @@
-import LandingPage from "@/components/LandingPage";
+import { AuthForm } from "@/components/Forms/AuthForm";
+// import LandingPage from "@/components/LandingPage";
 
 export default function Home() {
   return (
-    <LandingPage />
+   <AuthForm />
+    // <LandingPage />
   );
 }

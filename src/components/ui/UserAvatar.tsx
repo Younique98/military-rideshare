@@ -18,7 +18,7 @@ const UserAvatar = ({
     editable = false,
     onImageUpload,
 }: UserAvatarProps ) => {
-    const { user } = useAuth();
+    const { user, isLoading } = useAuth();
 
     // Size mappings
     const sizeClasses = {
@@ -40,12 +40,16 @@ const UserAvatar = ({
         }
     }
 
+      if (isLoading) {
+    return <div className={`${sizeClasses[size]} bg-gray-200 animate-pulse rounded-full`} />;
+  }
+
     return (
         <div
             className={`relative ${sizeClasses[size]} rounded-full overflow-hidden bg-gray-200 flex items-center justify-center group`}
         >
             {user?.photoURL ? (
-                <Image src={user?.photoURL} alt={alt} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+                <Image src={user.photoURL} alt={alt} fill className="object-cover object-top" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
             ) : (
                 <User
                     className={clsx(iconSizes[size], 'h-8 w-8 text-gray-500')}
