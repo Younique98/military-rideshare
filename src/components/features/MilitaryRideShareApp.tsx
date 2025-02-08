@@ -14,9 +14,14 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import Image from 'next/image'
 import UserAvatar from '../ui/UserAvatar'
+import { updateUserProfile } from '@/utils/user'
 import { handleImageUpload } from '@/utils/imageUpload'
+import { useSnackbar } from '@/contexts/Snackbar'
+import { useAuth } from '@/hooks/useAuth'
 
 const MilitaryRideShareApp = () => {
+    const { showSnackbar } = useSnackbar()
+    const { user } = useAuth();
     const [activeView, setActiveView] = useState('main') // main, ride, profile
     const [menuOpen, setMenuOpen] = useState(false)
     const [idMeVerified, setIdMeVerified] = useState(false)
@@ -81,6 +86,20 @@ const MilitaryRideShareApp = () => {
         }
     }
 
+    const handleUpload = async (file: File) => {
+       try {
+      if (!user?.uid) {
+        showSnackbar('You must be logged in to upload an image', 'error');
+        return;
+      }
+
+      const imageUrl = await handleImageUpload(file, user.uid, showSnackbar);
+      await updateUserProfile(user.uid, imageUrl);
+      
+    } catch (error) {
+      console.error(error);
+    }
+    }
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Navigation Bar */}
@@ -388,12 +407,7 @@ const MilitaryRideShareApp = () => {
                                     imageUrl=""
                                     size="md"
                                     editable
-                                    onImageUpload={(file) => {
-                                        // Handle file upload here
-                                        // TODO: (ET) Handle FIle upload
-                                        handleImageUpload(file)
-                                        console.log('Uploading file:', file)
-                                    }}
+                                    onImageUpload={handleUpload}
                                 />
                                 <div>
                                     <h3 className="font-semibold text-lg">

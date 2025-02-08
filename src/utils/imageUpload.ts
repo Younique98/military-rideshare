@@ -1,20 +1,33 @@
-export const handleImageUpload = async ( file: File ) => {
-  try {
-    // Create FormData
-    const formData = new FormData();
-    formData.append('file', file);
+import { storage, db } from '@/lib/firebase/config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, updateDoc } from "firebase/firestore";
 
-    // TODO: (ET and a way to upload to your API endpoint
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
+export const handleImageUpload = async (
+  file: File,
+  userId: string,
+  showSnackbar: (message: string, type: 'success' | 'error' | 'info') => void
+) => {
+    try {
+    // Create a reference to the file location
+    const profileImageRef = ref(storage, `users/${userId}/profile-image`);
+    
+    // Upload the file
+    await uploadBytes(profileImageRef, file);
+    
+    // Get the download URL
+    const downloadURL = await getDownloadURL(profileImageRef);
+    
+    // Update the user's profile in Firestore
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+      photoURL: downloadURL,
+      updatedAt: new Date().toISOString()
     });
 
-    if (!response.ok) throw new Error('Upload failed');
-
-    const data = await response.json();
-    return data.url;
+    showSnackbar('Profile image updated successfully', 'success');
+    return downloadURL;
   } catch (error) {
+    showSnackbar('Failed to upload image', 'error');
     throw error;
   }
 };
