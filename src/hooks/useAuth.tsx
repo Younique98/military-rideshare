@@ -14,9 +14,11 @@ export const AuthContext = createContext<IAuthContext | undefined>(undefined);
 
 // Hook to fetch user auth state
 const fetchAuthState = (): Promise<User | null> => {
-  return new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      resolve(user);
+  return new Promise( ( resolve ) => {
+    console.log('fetchAuthState')
+    const unsubscribe = onAuthStateChanged( auth, ( firebaseUser ) => {
+      console.log( 'user auth state changed', firebaseUser )
+      resolve(firebaseUser);
     });
     return () => unsubscribe();
   });
@@ -26,10 +28,12 @@ const fetchAuthState = (): Promise<User | null> => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { data: user, isLoading } = useQuery({
+  const { data: user, isLoading, error } = useQuery({
     queryKey: ["authUser"],
     queryFn: fetchAuthState,
     staleTime: Infinity, // Keeps user data cached indefinitely until logout
+    refetchOnMount: false, // Prevents refetching on component mount
+refetchOnReconnect: false, // Prevents refetching on reconnect    
   });
 
   const contextValue = useMemo(
@@ -40,9 +44,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     [user]
   );
     
+  console.log("🚀 useAuth Query Loading:", isLoading);
+  console.log("✅ useAuth User Data:", user);
+  console.log( "❌ useAuth Error:", error );
+  
   return (
     <AuthContext.Provider value={contextValue}>
-      {isLoading ? children : <p>Loading...</p>}
+      {children}
     </AuthContext.Provider>
   );
 };

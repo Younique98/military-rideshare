@@ -1,7 +1,7 @@
 import { getStorage } from 'firebase/storage'
 import { initializeApp } from 'firebase/app'
-import { getAnalytics } from 'firebase/analytics'
-import { getAuth } from 'firebase/auth'
+import { getAnalytics, isSupported } from 'firebase/analytics'
+import { getAuth, setPersistence, inMemoryPersistence } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -18,12 +18,26 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
-const analytics = getAnalytics(app)
+let analytics;
+if (typeof window !== "undefined") {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  });
+}
 // Initialize Storage
 const storage = getStorage(app)
 // Initialize Auth
 const auth = getAuth(app)
 // Initialize Firestore
-const db = getFirestore(app)
+const db = getFirestore( app )
+
+// Force Firebase to NOT auto-sign-in by using `inMemoryPersistence`
+// setPersistence(auth, inMemoryPersistence);
+setPersistence(auth, inMemoryPersistence)
+  .then(() => console.log("✅ Firebase persistence set to in-memory"))
+  .catch((error) => console.error("❌ Firebase persistence error:", error));
+
 
 export { app, analytics, storage, auth, db }

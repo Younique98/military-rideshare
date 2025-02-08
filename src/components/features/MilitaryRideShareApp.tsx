@@ -21,7 +21,7 @@ import { useAuth } from '@/hooks/useAuth'
 
 const MilitaryRideShareApp = () => {
     const { showSnackbar } = useSnackbar()
-    const { user } = useAuth();
+    const { user } = useAuth()
     const [activeView, setActiveView] = useState('main') // main, ride, profile
     const [menuOpen, setMenuOpen] = useState(false)
     const [idMeVerified, setIdMeVerified] = useState(false)
@@ -87,18 +87,25 @@ const MilitaryRideShareApp = () => {
     }
 
     const handleUpload = async (file: File) => {
-       try {
-      if (!user?.uid) {
-        showSnackbar('You must be logged in to upload an image', 'error');
-        return;
-      }
+        try {
+            if (!user?.uid) {
+                showSnackbar(
+                    'You must be logged in to upload an image',
+                    'error'
+                )
+                return
+            }
 
-      const imageUrl = await handleImageUpload(file, user.uid, showSnackbar);
-      await updateUserProfile(user.uid, imageUrl);
-      
-    } catch (error) {
-      console.error(error);
-    }
+            const imageUrl = await handleImageUpload(
+                file,
+                user.uid,
+                showSnackbar
+            )
+            await updateUserProfile(user.uid, imageUrl)
+        } catch (error) {
+            //TODO: (ET) handle error
+            console.error(error)
+        }
     }
     return (
         <div className="min-h-screen bg-gray-50">
@@ -404,10 +411,23 @@ const MilitaryRideShareApp = () => {
                         <div className="bg-white p-6 rounded-lg shadow">
                             <div className="flex items-center space-x-4">
                                 <UserAvatar
-                                    imageUrl=""
+                                    imageUrl={user?.photoURL}
                                     size="md"
                                     editable
                                     onImageUpload={handleUpload}
+                                />
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0]
+                                        if (file)
+                                            handleImageUpload(
+                                                file,
+                                                user?.uid || '',
+                                                showSnackbar
+                                            )
+                                    }}
                                 />
                                 <div>
                                     <h3 className="font-semibold text-lg">
