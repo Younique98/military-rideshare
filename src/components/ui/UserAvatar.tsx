@@ -2,6 +2,7 @@ import React from 'react'
 import Image from 'next/image'
 import { User } from 'lucide-react'
 import clsx from 'clsx'
+import { useAuth } from '@/hooks/useAuth'
 
 interface UserAvatarProps {
     imageUrl?: string | null
@@ -12,12 +13,13 @@ interface UserAvatarProps {
 }
 
 const UserAvatar = ({
-    imageUrl = null,
     size = 'md',
     alt = 'User avatar',
     editable = false,
     onImageUpload,
-}: UserAvatarProps) => {
+}: UserAvatarProps ) => {
+    const { user } = useAuth();
+
     // Size mappings
     const sizeClasses = {
         sm: 'h-10 w-10',
@@ -42,8 +44,8 @@ const UserAvatar = ({
         <div
             className={`relative ${sizeClasses[size]} rounded-full overflow-hidden bg-gray-200 flex items-center justify-center group`}
         >
-            {imageUrl ? (
-                <Image src={imageUrl} alt={alt} fill className="object-cover" />
+            {user?.photoURL ? (
+                <Image src={user?.photoURL} alt={alt} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
             ) : (
                 <User
                     className={clsx(iconSizes[size], 'h-8 w-8 text-gray-500')}
@@ -53,7 +55,7 @@ const UserAvatar = ({
             {editable && (
                 <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                     <span className="text-white text-sm">
-                        {imageUrl ? 'Change' : 'Upload'}
+                        {user?.photoURL ? 'Change' : 'Upload'}
                     </span>
                     <input
                         type="file"

@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth'
 const MilitaryRideShareApp = () => {
     const { showSnackbar } = useSnackbar()
     const { user } = useAuth()
+    console.log('user in military app', user)
     const [activeView, setActiveView] = useState('main') // main, ride, profile
     const [menuOpen, setMenuOpen] = useState(false)
     const [idMeVerified, setIdMeVerified] = useState(false)
@@ -98,7 +99,6 @@ const MilitaryRideShareApp = () => {
 
             const imageUrl = await handleImageUpload(
                 file,
-                user.uid,
                 showSnackbar
             )
             await updateUserProfile(user.uid, imageUrl)
@@ -424,7 +424,6 @@ const MilitaryRideShareApp = () => {
                                         if (file)
                                             handleImageUpload(
                                                 file,
-                                                user?.uid || '',
                                                 showSnackbar
                                             )
                                     }}
