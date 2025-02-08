@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import {
     Shield,
     MapPin,
-    User,
     Menu,
     X,
     LogOut,
@@ -97,10 +96,7 @@ const MilitaryRideShareApp = () => {
                 return
             }
 
-            const imageUrl = await handleImageUpload(
-                file,
-                showSnackbar
-            )
+            const imageUrl = await handleImageUpload(file, showSnackbar)
             await updateUserProfile(user.uid, imageUrl)
         } catch (error) {
             //TODO: (ET) handle error
@@ -110,7 +106,7 @@ const MilitaryRideShareApp = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Navigation Bar */}
-            <nav className="bg-white shadow-sm">
+            <nav className="bg-white shadow-sm py-2">
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="flex justify-between h-16">
                         <div className="flex items-center">
@@ -124,16 +120,22 @@ const MilitaryRideShareApp = () => {
                                     <Menu className="h-6 w-6" />
                                 )}
                             </button>
-                            <span className="ml-2 font-semibold text-lg">
+                            <span className="ml-2 font-semibold text-2xl md:text-3xl">
                                 Base Link
                             </span>
                         </div>
                         <div className="flex items-center">
                             <button
                                 onClick={() => setActiveView('profile')}
-                                className="p-2 rounded-full text-gray-600 hover:text-gray-900"
+                                className="rounded-full text-gray-600 hover:text-gray-900"
                             >
-                                <User className="h-6 w-6" />
+                                <div>
+                                    <UserAvatar
+                                        imageUrl={user?.photoURL}
+                                        size="md"
+                                        onImageUpload={handleUpload}
+                                    />
+                                </div>
                             </button>
                         </div>
                     </div>
@@ -306,42 +308,79 @@ const MilitaryRideShareApp = () => {
                     </div>
                 ) : activeView === 'ride' ? (
                     <div className="space-y-6">
+                        {/* //TODO: (ET) Get routes and directions from google maps api so that suggestions pop up based on their location */}
+                        <h1 className="text-xl md:text-5xl font-bold tracking-tight text-gray-900 text-center">
+                            Request a Ride
+                        </h1>
                         {step === 1 ? (
                             <>
-                                <div className="space-y-4">
-                                    <div className="relative">
-                                        <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Pickup location"
-                                            value={pickup}
-                                            onChange={(e) =>
-                                                setPickup(e.target.value)
-                                            }
-                                            className="w-full p-4 pl-12 border rounded-lg"
-                                        />
+                                <>
+                                    <div className="space-y-4">
+                                        <div className="relative">
+                                            {/* //TODO: (ET) enhance some more. its pretty plain */}
+                                            <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                placeholder="Pickup location"
+                                                value={pickup}
+                                                onChange={(e) =>
+                                                    setPickup(e.target.value)
+                                                }
+                                                className="w-full p-4 pl-12 border rounded-lg"
+                                            />
+                                        </div>
+                                        <div className="relative">
+                                            <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                placeholder="Dropoff location"
+                                                value={dropoff}
+                                                onChange={(e) =>
+                                                    setDropoff(e.target.value)
+                                                }
+                                                className="w-full p-4 pl-12 border rounded-lg"
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Dropoff location"
-                                            value={dropoff}
-                                            onChange={(e) =>
-                                                setDropoff(e.target.value)
-                                            }
-                                            className="w-full p-4 pl-12 border rounded-lg"
-                                        />
-                                    </div>
-                                </div>
 
-                                <button
-                                    onClick={handleRideRequest}
-                                    disabled={!pickup || !dropoff}
-                                    className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:bg-gray-300"
-                                >
-                                    Continue
-                                </button>
+                                    <button
+                                        onClick={handleRideRequest}
+                                        disabled={!pickup || !dropoff}
+                                        className="w-full py-3 bg-primary text-white rounded-lg hover:bg-blue-500 disabled:bg-gray-300"
+                                    >
+                                        Continue
+                                    </button>
+                                </>
+                                {/* // TODO: (ET) replace with populated locations or have recommendations from our AI "Sarge" based on user history and ratings of places visited*/}
+                                <div className="relative w-full p-4 pl-12 border rounded-lg">
+                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                                    <h3> Coffee Beanery</h3>
+                                    <p> 1234 Beanery Dr, Anywhere, NC 28310</p>
+                                </div>
+                                <div className="relative w-full p-4 pl-12 border rounded-lg">
+                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                                    <h3> Turnpike Trails</h3>
+                                    <p>
+                                        {' '}
+                                        5648 Turnpike Way, Anywhere, NC 28310
+                                    </p>
+                                </div>
+                                <div className="relative w-full p-4 pl-12 border rounded-lg">
+                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                                    <h3> River Walk</h3>
+                                    <p>
+                                        {' '}
+                                        9876 WalkItOut Dr, Anywhere, NC 28310
+                                    </p>
+                                </div>
+                                <div className="relative w-full p-4 pl-12 border rounded-lg">
+                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                                    <h3> Cupcakes & Sprinkles </h3>
+                                    <p>
+                                        {' '}
+                                        9876 Dessert Dr, Anywhere, NC 28310
+                                    </p>
+                                </div>
                             </>
                         ) : step === 2 ? (
                             <div className="space-y-6">
@@ -416,22 +455,12 @@ const MilitaryRideShareApp = () => {
                                     editable
                                     onImageUpload={handleUpload}
                                 />
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0]
-                                        if (file)
-                                            handleImageUpload(
-                                                file,
-                                                showSnackbar
-                                            )
-                                    }}
-                                />
                                 <div>
+                                    {/* //TODO (ET) add a form for user to update their profile */}
                                     <h3 className="font-semibold text-lg">
-                                        John Doe
+                                        {user?.displayName || 'John Doe'}
                                     </h3>
+                                    {/* //TODO: (ET) user should be able to select what branch they are in */}
                                     <p className="text-gray-600">
                                         U.S. Army - Active Duty
                                     </p>

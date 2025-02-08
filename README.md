@@ -79,6 +79,7 @@ base-link/
 │   │   ├── (auth)/            # Authentication pages
 │   │   │   ├── verify/        # ID.me verification
 │   │   │   └── login/         # Login pages
+│   │   │   └── register/      # register pages
 │   │   ├── (dashboard)/       # Protected routes
 │   │   │   ├── rides/         # Ride management
 │   │   │   └── profile/       # User profiles

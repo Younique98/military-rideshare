@@ -1,4 +1,4 @@
-import MilitaryRideShareApp from "@/components/features/MilitaryRideShareApp";
+import MilitaryRideShareApp from '@/components/features/MilitaryRideShareApp'
 
 export default function DashboardPage() {
     return (

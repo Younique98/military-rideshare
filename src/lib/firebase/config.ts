@@ -18,24 +18,24 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
-let analytics;
-if (typeof window !== "undefined") {
-  isSupported().then((supported) => {
-    if (supported) {
-      analytics = getAnalytics(app);
-    }
-  });
+let analytics
+if (typeof window !== 'undefined') {
+    isSupported().then((supported) => {
+        if (supported) {
+            analytics = getAnalytics(app)
+        }
+    })
 }
 // Initialize Storage
 const storage = getStorage(app)
 // Initialize Auth
 const auth = getAuth(app)
 // Initialize Firestore
-const db = getFirestore( app )
+const db = getFirestore(app)
 
 // TODO: (ET) add error handling
 setPersistence(auth, browserLocalPersistence)
-  .then(() => console.log("✅ Firebase persistence set to local storage"))
-  .catch((error) => console.error("❌ Firebase persistence error:", error));
+    .then(() => console.log('✅ Firebase persistence set to local storage'))
+    .catch((error) => console.error('❌ Firebase persistence error:', error))
 
 export { app, analytics, storage, auth, db }

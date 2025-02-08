@@ -10,6 +10,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { handleGoogleSignIn } from '@/utils/helpers/handleGoogleSignIn'
+import Link from 'next/link'
 
 interface IAuthForm {
     mode: 'login' | 'signup' | 'register'
@@ -66,10 +67,10 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
     }
     console.log('isLoggedIn', isLoggedIn)
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="flex items-center justify-center min-h-screen bg-gray-100 w-full">
             <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                    Log In
+                    {mode === 'login' ? 'Log In' : 'Register'}
                 </h2>
                 {error && <p className="text-red-500 mb-4">{error}</p>}
                 <div className="mb-4">
@@ -92,27 +93,40 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
-                <button
-                    className="w-full bg-accent text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition"
-                    onClick={() => handleAuth(true)}
-                    disabled={loading}
-                >
-                    Log In
-                </button>
-                <button
-                    className="w-full mt-4 bg-accent text-white py-2 px-4 rounded-md hover:bg-green-600 transition"
-                    onClick={() => handleAuth(false)}
-                    disabled={loading}
-                >
-                    Sign Up
-                </button>
+                {mode === 'login' ? (
+                    <button
+                        className="w-full bg-accent text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition"
+                        onClick={() => handleAuth(true)}
+                        disabled={loading}
+                    >
+                        Log In
+                    </button>
+                ) : (
+                    <button
+                        className="w-full mt-4 bg-accent text-white py-2 px-4 rounded-md hover:bg-green-600 transition"
+                        onClick={() => handleAuth(false)}
+                        disabled={loading}
+                    >
+                        Sign Up
+                    </button>
+                )}
                 <button
                     className="w-full mt-4 bg-primary text-white py-2 px-4 rounded-md hover:bg-blue-600 transition"
                     onClick={handleGoogleAuth}
                     disabled={loading}
                 >
-                    Sign in with Google
+                    {mode === 'login' ? 'Log In' : 'Register'} with Google
                 </button>
+                {/* // TODO: (ET) add forgot password link */}
+                {mode === 'login' ?
+                   (<div className=" mt-4 text-sm text-gray-600 text-center">
+                        <Link href={'/register'}>Create an account?</Link>
+                    </div>) : (
+                    <div className=" mt-4 text-sm text-gray-600 text-center">
+                        <Link href={'/login'}>Already have an account?</Link>
+                    </div>
+                    ) 
+                }
             </div>
         </div>
     )

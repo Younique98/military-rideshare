@@ -1,5 +1,5 @@
-import LandingPage from "@/components/LandingPage";
+import LandingPage from '@/components/LandingPage'
 
 export default function JoinPage() {
-  return <LandingPage />;
+    return <LandingPage />
 }

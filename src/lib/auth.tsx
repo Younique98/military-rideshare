@@ -44,9 +44,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         queryKey: ['authUser'],
         queryFn: fetchAuthState,
         staleTime: Infinity,
-        refetchOnMount: false, 
-        refetchOnReconnect: false, 
-        refetchOnWindowFocus: false, 
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+        refetchOnWindowFocus: false,
     })
 
     const contextValue = useMemo(

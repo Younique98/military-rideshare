@@ -43,7 +43,7 @@ const LandingPage = () => {
         <div className="min-h-screen bg-white">
             {/* Hero Section */}
             <div className="relative isolate px-6 pt-14 lg:px-8">
-                <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
+                <div className="mx-auto max-w-2xl py-22 sm:py-38 lg:py-54">
                     <div className="text-center">
                         <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
                             Military Rideshare Made Simple
@@ -109,7 +109,7 @@ const LandingPage = () => {
             </div>
 
             {/* Features Section */}
-            <div className="py-24 sm:py-32">
+            <div className="py-12 sm:py-20">
                 <div className="mx-auto max-w-7xl px-6 lg:px-8">
                     <div className="mx-auto max-w-2xl lg:text-center">
                         <h2 className="text-base font-semibold leading-7 text-blue-600">
