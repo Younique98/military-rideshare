@@ -1,20 +1,37 @@
-export const handleImageUpload = async ( file: File ) => {
-  try {
-    // Create FormData
-    const formData = new FormData();
-    formData.append('file', file);
+import { storage, auth } from '@/lib/firebase/config'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { updateProfile } from 'firebase/auth'
 
-    // TODO: (ET and a way to upload to your API endpoint
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
+export const handleImageUpload = async (
+    file: File,
+    showSnackbar: (message: string, type: 'success' | 'error' | 'info') => void
+) => {
+    // Get current user
+    const currentUser = auth.currentUser
 
-    if (!response.ok) throw new Error('Upload failed');
+    if (!currentUser) {
+        showSnackbar('You must be logged in to upload an image', 'error')
+        throw new Error('User not authenticated')
+    }
 
-    const data = await response.json();
-    return data.url;
-  } catch (error) {
-    throw error;
-  }
-};
+    try {
+        const profileImageRef = ref(
+            storage,
+            `users/${currentUser.uid}/profile-image`
+        )
+        await uploadBytes(profileImageRef, file)
+        const downloadURL = await getDownloadURL(profileImageRef)
+
+        // Update user's photoURL if needed
+        await updateProfile(currentUser, {
+            photoURL: downloadURL,
+        })
+
+        showSnackbar('Profile image updated successfully', 'success')
+        return downloadURL
+    } catch (error) {
+        console.error('Error uploading image:', error)
+        showSnackbar('Failed to upload image', 'error')
+        throw error
+    }
+}

@@ -43,7 +43,7 @@ const LandingPage = () => {
         <div className="min-h-screen bg-white">
             {/* Hero Section */}
             <div className="relative isolate px-6 pt-14 lg:px-8">
-                <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
+                <div className="mx-auto max-w-2xl py-22 sm:py-38 lg:py-54">
                     <div className="text-center">
                         <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
                             Military Rideshare Made Simple
@@ -72,6 +72,7 @@ const LandingPage = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
+                            {/* // TODO: (ET) WHere do we watn this data to go */}
                             <button
                                 type="submit"
                                 className="flex-none rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
@@ -108,7 +109,7 @@ const LandingPage = () => {
             </div>
 
             {/* Features Section */}
-            <div className="py-24 sm:py-32">
+            <div className="py-12 sm:py-20">
                 <div className="mx-auto max-w-7xl px-6 lg:px-8">
                     <div className="mx-auto max-w-2xl lg:text-center">
                         <h2 className="text-base font-semibold leading-7 text-blue-600">
@@ -161,7 +162,7 @@ const LandingPage = () => {
                         <div className="relative rounded-xl bg-gray-900/5 p-2">
                             <div className="flex justify-center">
                                 <Image
-                                    src="/api/placeholder/280/560"
+                                    src="/images/map/map_of_vegas.png"
                                     alt="App preview"
                                     width={280}
                                     height={560}
