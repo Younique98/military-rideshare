@@ -3,51 +3,102 @@
 import { useEffect, useState } from 'react'
 import { auth } from '@/lib/firebase/config'
 import {
-    signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut,
+    onAuthStateChanged,
+    fetchSignInMethodsForEmail,
+    AuthError,
 } from 'firebase/auth'
-import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { handleGoogleSignIn } from '@/utils/helpers/handleGoogleSignIn'
 import Link from 'next/link'
+import { signIn } from '@/utils/helpers/authHelpers'
+import { useSnackbar } from '@/contexts/Snackbar'
 
 interface IAuthForm {
     mode: 'login' | 'signup' | 'register'
 }
 
-// TODO: (ET) add loading state
+type TAuthError = {
+    code: string
+    message: string
+}
+
 export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
-    //TODO: (ET) add loading state and utilize them
-    console.log('mode', mode)
-    const { isLoggedIn } = useAuth()
     const router = useRouter()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [user, setUser] = useState(auth.currentUser)
+    const { showSnackbar } = useSnackbar()
 
+    //  Check Auth State Instead of Signing Out Every Time
     useEffect(() => {
-        signOut(auth)
-    }, [])
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser)
+            if (currentUser) {
+                router.replace('/rideapp')
+            }
+        })
+        return () => unsubscribe()
+    }, [router])
 
-    const handleAuth = async (isLogin: boolean) => {
-        console.log('isLogin', isLogin)
+    // Handle email/password authentication
+    const handleAuth = async () => {
         setLoading(true)
         setError(null)
         try {
-            if (isLogin) {
-                console.log('isLogin', isLogin)
-                await signInWithEmailAndPassword(auth, email, password)
+            const signInMethods = await fetchSignInMethodsForEmail(auth, email)
+            // TODO: (ET) Handle this in a banner instead of an alert and clean this up instead of checking for a specific error message
+            if (signInMethods.length > 0) {
+                // ✅ User exists → Proceed with login
+                const user = await signIn(email, password)
+                if (user) router.replace('/rideapp')
             } else {
-                console.log('is Not Login', isLogin)
-                await createUserWithEmailAndPassword(auth, email, password)
+                if (
+                    error !==
+                    'This email is already registered. Please try logging in.'
+                ) {
+                    //  No account found → Ask user for confirmation before creating one
+                    const confirmSignup = window.confirm(
+                        `No account found for ${email}. Would you like to create one?`
+                    )
+
+                    if (!confirmSignup) {
+                        setError('Signup canceled. Please try logging in.')
+                    }
+
+                    return
+                }
+
+                try {
+                    const newUser = await createUserWithEmailAndPassword(
+                        auth,
+                        email,
+                        password
+                    )
+                    console.log('✅ Account created:', newUser.user)
+                    router.replace('/rideapp')
+                } catch (createError) {
+                    if (
+                        (createError as AuthError).code ===
+                        'auth/email-already-in-use'
+                    ) {
+                        setError(
+                            'This email is already registered. Please try logging in with your Google account.'
+                        )
+                    } else {
+                        setError(
+                            (createError as AuthError).message ||
+                                'An unexpected error occurred.'
+                        )
+                    }
+                }
             }
-            // TODO: (ET) create enums or a better routing system
-            router.replace('/rideapp')
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            const error = err as TAuthError
+            setError(error.message || 'An unexpected error occurred')
         } finally {
             setLoading(false)
         }
@@ -58,14 +109,27 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
         setError(null)
         try {
             await handleGoogleSignIn(router.replace)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            const error = err as TAuthError
+            setError(error.message || 'An unexpected error occurred')
         } finally {
             setLoading(false)
         }
     }
-    console.log('isLoggedIn', isLoggedIn)
+
+    // Explicitly sign out (not automatically)
+    const handleSignOut = async () => {
+        try {
+            await signOut(auth)
+            setUser(null)
+            router.replace('/login')
+        } catch (err) {
+            // TODO: (ET) handle error
+            showSnackbar('Error signing out', 'error')
+            console.error('Error signing out:', err)
+        }
+    }
+
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 w-full">
             <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
@@ -73,6 +137,7 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                     {mode === 'login' ? 'Log In' : 'Register'}
                 </h2>
                 {error && <p className="text-red-500 mb-4">{error}</p>}
+
                 <div className="mb-4">
                     <label className="block text-sm text-gray-700">Email</label>
                     <input
@@ -82,6 +147,7 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                         onChange={(e) => setEmail(e.target.value)}
                     />
                 </div>
+
                 <div className="mb-4">
                     <label className="block text-sm text-gray-700">
                         Password
@@ -93,23 +159,15 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
-                {mode === 'login' ? (
-                    <button
-                        className="w-full bg-accent text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition"
-                        onClick={() => handleAuth(true)}
-                        disabled={loading}
-                    >
-                        Log In
-                    </button>
-                ) : (
-                    <button
-                        className="w-full mt-4 bg-accent text-white py-2 px-4 rounded-md hover:bg-green-600 transition"
-                        onClick={() => handleAuth(false)}
-                        disabled={loading}
-                    >
-                        Sign Up
-                    </button>
-                )}
+
+                <button
+                    className="w-full bg-accent text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition"
+                    onClick={handleAuth}
+                    disabled={loading}
+                >
+                    {mode === 'login' ? 'Log In' : 'Sign Up'}
+                </button>
+
                 <button
                     className="w-full mt-4 bg-primary text-white py-2 px-4 rounded-md hover:bg-blue-600 transition"
                     onClick={handleGoogleAuth}
@@ -117,16 +175,25 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                 >
                     {mode === 'login' ? 'Log In' : 'Register'} with Google
                 </button>
-                {/* // TODO: (ET) add forgot password link */}
-                {mode === 'login' ?
-                   (<div className=" mt-4 text-sm text-gray-600 text-center">
+                {/* // TODO: (ET move sign out button to navbar */}
+                {user && (
+                    <button
+                        className="w-full mt-4 bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition"
+                        onClick={handleSignOut}
+                    >
+                        Sign Out
+                    </button>
+                )}
+
+                {mode === 'login' ? (
+                    <div className="mt-4 text-sm text-gray-600 text-center">
                         <Link href={'/register'}>Create an account?</Link>
-                    </div>) : (
-                    <div className=" mt-4 text-sm text-gray-600 text-center">
+                    </div>
+                ) : (
+                    <div className="mt-4 text-sm text-gray-600 text-center">
                         <Link href={'/login'}>Already have an account?</Link>
                     </div>
-                    ) 
-                }
+                )}
             </div>
         </div>
     )

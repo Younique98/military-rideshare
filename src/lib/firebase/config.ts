@@ -1,10 +1,9 @@
 import { getStorage } from 'firebase/storage'
 import { initializeApp } from 'firebase/app'
 import { getAnalytics, isSupported } from 'firebase/analytics'
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth'
+import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
-// https://firebase.google.com/docs/web/setup#available-libraries
 // TODO: (ET) add prodConfig and devConfig at a later stage to keep the keys safe and organized
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -29,13 +28,10 @@ if (typeof window !== 'undefined') {
 // Initialize Storage
 const storage = getStorage(app)
 // Initialize Auth
-const auth = getAuth(app)
+const auth = getAuth(app);
 // Initialize Firestore
 const db = getFirestore(app)
 
-// TODO: (ET) add error handling
-setPersistence(auth, browserLocalPersistence)
-    .then(() => console.log('✅ Firebase persistence set to local storage'))
-    .catch((error) => console.error('❌ Firebase persistence error:', error))
 
-export { app, analytics, storage, auth, db }
+
+export { app, analytics, storage, auth, db}

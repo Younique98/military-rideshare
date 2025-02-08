@@ -12,16 +12,11 @@ import {
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import Image from 'next/image'
-import UserAvatar from '../ui/UserAvatar'
-import { updateUserProfile } from '@/utils/user'
-import { handleImageUpload } from '@/utils/imageUpload'
-import { useSnackbar } from '@/contexts/Snackbar'
-import { useAuth } from '@/hooks/useAuth'
+import {UserAvatar} from '../ui/UserAvatar'
+import { SargeRecommendations } from './Sarge/SargeReccomendations'
+import { redirect } from 'next/navigation'
 
 const MilitaryRideShareApp = () => {
-    const { showSnackbar } = useSnackbar()
-    const { user } = useAuth()
-    console.log('user in military app', user)
     const [activeView, setActiveView] = useState('main') // main, ride, profile
     const [menuOpen, setMenuOpen] = useState(false)
     const [idMeVerified, setIdMeVerified] = useState(false)
@@ -49,22 +44,6 @@ const MilitaryRideShareApp = () => {
         },
     ]
 
-    const recentRides = [
-        {
-            id: 1,
-            pickup: 'Fort Liberty Main Gate',
-            dropoff: 'Cross Creek Mall',
-            date: '2024-02-06',
-            status: 'Completed',
-        },
-        {
-            id: 2,
-            pickup: 'Pope Army Airfield',
-            dropoff: 'Downtown Fayetteville',
-            date: '2024-02-05',
-            status: 'Completed',
-        },
-    ]
 
     const handleIdMeVerification = () => {
         // Mock ID.me verification process
@@ -86,23 +65,10 @@ const MilitaryRideShareApp = () => {
         }
     }
 
-    const handleUpload = async (file: File) => {
-        try {
-            if (!user?.uid) {
-                showSnackbar(
-                    'You must be logged in to upload an image',
-                    'error'
-                )
-                return
-            }
-
-            const imageUrl = await handleImageUpload(file, showSnackbar)
-            await updateUserProfile(user.uid, imageUrl)
-        } catch (error) {
-            //TODO: (ET) handle error
-            console.error(error)
-        }
+    if ( activeView === 'profile' ) { 
+        redirect ('/profile')
     }
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Navigation Bar */}
@@ -126,14 +92,12 @@ const MilitaryRideShareApp = () => {
                         </div>
                         <div className="flex items-center">
                             <button
-                                onClick={() => setActiveView('profile')}
+                                onClick={() => redirect('/profile')}
                                 className="rounded-full text-gray-600 hover:text-gray-900"
                             >
                                 <div>
                                     <UserAvatar
-                                        imageUrl={user?.photoURL}
                                         size="md"
-                                        onImageUpload={handleUpload}
                                     />
                                 </div>
                             </button>
@@ -352,35 +316,7 @@ const MilitaryRideShareApp = () => {
                                     </button>
                                 </>
                                 {/* // TODO: (ET) replace with populated locations or have recommendations from our AI "Sarge" based on user history and ratings of places visited*/}
-                                <div className="relative w-full p-4 pl-12 border rounded-lg">
-                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                                    <h3> Coffee Beanery</h3>
-                                    <p> 1234 Beanery Dr, Anywhere, NC 28310</p>
-                                </div>
-                                <div className="relative w-full p-4 pl-12 border rounded-lg">
-                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                                    <h3> Turnpike Trails</h3>
-                                    <p>
-                                        {' '}
-                                        5648 Turnpike Way, Anywhere, NC 28310
-                                    </p>
-                                </div>
-                                <div className="relative w-full p-4 pl-12 border rounded-lg">
-                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                                    <h3> River Walk</h3>
-                                    <p>
-                                        {' '}
-                                        9876 WalkItOut Dr, Anywhere, NC 28310
-                                    </p>
-                                </div>
-                                <div className="relative w-full p-4 pl-12 border rounded-lg">
-                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                                    <h3> Cupcakes & Sprinkles </h3>
-                                    <p>
-                                        {' '}
-                                        9876 Dessert Dr, Anywhere, NC 28310
-                                    </p>
-                                </div>
+                                <SargeRecommendations />
                             </>
                         ) : step === 2 ? (
                             <div className="space-y-6">
@@ -445,65 +381,7 @@ const MilitaryRideShareApp = () => {
                             </div>
                         )}
                     </div>
-                ) : activeView === 'profile' ? (
-                    <div className="space-y-8">
-                        <div className="bg-white p-6 rounded-lg shadow">
-                            <div className="flex items-center space-x-4">
-                                <UserAvatar
-                                    imageUrl={user?.photoURL}
-                                    size="md"
-                                    editable
-                                    onImageUpload={handleUpload}
-                                />
-                                <div>
-                                    {/* //TODO (ET) add a form for user to update their profile */}
-                                    <h3 className="font-semibold text-lg">
-                                        {user?.displayName || 'John Doe'}
-                                    </h3>
-                                    {/* //TODO: (ET) user should be able to select what branch they are in */}
-                                    <p className="text-gray-600">
-                                        U.S. Army - Active Duty
-                                    </p>
-                                    <div className="mt-1 flex items-center text-sm text-green-600">
-                                        <Shield className="h-4 w-4 mr-1" />
-                                        ID.me Verified
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">
-                                Recent Rides
-                            </h3>
-                            <div className="space-y-3">
-                                {recentRides.map((ride) => (
-                                    <div
-                                        key={ride.id}
-                                        className="bg-white p-4 rounded-lg shadow"
-                                    >
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <div className="font-medium">
-                                                    {ride.pickup}
-                                                </div>
-                                                <div className="text-sm text-gray-600">
-                                                    to {ride.dropoff}
-                                                </div>
-                                                <div className="text-sm text-gray-500 mt-1">
-                                                    {ride.date}
-                                                </div>
-                                            </div>
-                                            <span className="text-sm text-green-600">
-                                                {ride.status}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                ) : null}
+                        ) : null}
             </main>
         </div>
     )
