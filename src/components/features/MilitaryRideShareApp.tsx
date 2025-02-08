@@ -17,6 +17,7 @@ import { updateUserProfile } from '@/utils/user'
 import { handleImageUpload } from '@/utils/imageUpload'
 import { useSnackbar } from '@/contexts/Snackbar'
 import { useAuth } from '@/hooks/useAuth'
+import { SargeRecommendations } from './Sarge/SargeReccomendations'
 
 const MilitaryRideShareApp = () => {
     const { showSnackbar } = useSnackbar()
@@ -352,6 +353,7 @@ const MilitaryRideShareApp = () => {
                                     </button>
                                 </>
                                 {/* // TODO: (ET) replace with populated locations or have recommendations from our AI "Sarge" based on user history and ratings of places visited*/}
+                                <SargeRecommendations />
                                 <div className="relative w-full p-4 pl-12 border rounded-lg">
                                     <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
                                     <h3> Coffee Beanery</h3>
@@ -376,10 +378,7 @@ const MilitaryRideShareApp = () => {
                                 <div className="relative w-full p-4 pl-12 border rounded-lg">
                                     <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
                                     <h3> Cupcakes & Sprinkles </h3>
-                                    <p>
-                                        {' '}
-                                        9876 Dessert Dr, Anywhere, NC 28310
-                                    </p>
+                                    <p> 9876 Dessert Dr, Anywhere, NC 28310</p>
                                 </div>
                             </>
                         ) : step === 2 ? (
