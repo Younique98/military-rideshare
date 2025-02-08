@@ -4,7 +4,7 @@ import { User } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '@/hooks/useAuth'
 
-interface UserAvatarProps {
+interface IUserAvatar {
     imageUrl?: string | null
     size?: 'sm' | 'md' | 'lg'
     alt?: string
@@ -17,7 +17,7 @@ const UserAvatar = ({
     alt = 'User avatar',
     editable = false,
     onImageUpload,
-}: UserAvatarProps ) => {
+}: IUserAvatar ) => {
     const { user, isLoading } = useAuth();
 
     // Size mappings
