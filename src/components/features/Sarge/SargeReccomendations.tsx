@@ -1,17 +1,12 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-    Tooltip,
-    TooltipTrigger,
-    TooltipContent,
-    TooltipProvider,
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipProvider } from '@/components/ui/tooltip'
 import Image from 'next/image'
 
 export const SargeRecommendations = () => {
+    const [tooltipVisible, setTooltipVisible] = useState(false)
+
     const recommendations = [
         {
             name: 'Central Park',
@@ -33,6 +28,17 @@ export const SargeRecommendations = () => {
         },
     ]
 
+    const handleSelect = (rec: {
+        name: string
+        description?: string
+        address?: string
+        image?: string
+    }) => {
+        console.log(`Selected: ${rec.name}`)
+
+        // TODO: (ET) Add logic here for what happens when a card is selected.
+    }
+
     return (
         <div className="p-4">
             <div className="flex items-center space-x-4 mb-4">
@@ -53,10 +59,14 @@ export const SargeRecommendations = () => {
                 </div>
             </div>
 
-            <ScrollArea className="h-48">
-                <div className="flex space-x-4">
+            <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {recommendations.map((rec, index) => (
-                        <Card key={index} className="w-64">
+                        <Card
+                            key={index}
+                            className="w-full cursor-pointer hover:shadow-lg transition-shadow hover:scale-105 transform hover:ring-4 hover:ring-accent"
+                            onClick={() => handleSelect(rec)}
+                        >
                             <Image
                                 src={rec.image}
                                 alt={rec.name}
@@ -74,26 +84,37 @@ export const SargeRecommendations = () => {
                                 <p className="text-sm text-gray-700">
                                     {rec.address}
                                 </p>
-                                <Button className="mt-2 w-full">Select</Button>
+                                {/* <Button className="mt-2 w-full">Select</Button> */}
                             </CardContent>
                         </Card>
                     ))}
                 </div>
-            </ScrollArea>
+            </div>
             <TooltipProvider>
                 <Tooltip>
-                    <TooltipTrigger>
-                        <p className="mt-4 text-sm text-blue-500 cursor-pointer">
-                            How does Sarge work?
-                        </p>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>
-                            Sarge suggests locations based on places you&apos;ve
-                            visited and rated. The more you interact, the
-                            smarter the recommendations become!
-                        </p>
-                    </TooltipContent>
+                    <p
+                        className="mt-4 text-sm text-blue-500 cursor-pointer"
+                        onClick={() => setTooltipVisible(!tooltipVisible)}
+                    >
+                        How does Sarge work?
+                    </p>
+                    {tooltipVisible && (
+                        <div
+                            className="absolute z-10 mt-2 p-4 bg-white text-black rounded-md shadow-lg max-w-xs w-full sm:max-w-sm"
+                            style={{
+                                transition: 'opacity 0.3s ease',
+                                opacity: 1,
+                            }}
+                            onClick={() => setTooltipVisible(false)}
+                        >
+                            <p>
+                                Sarge suggests locations based on places
+                                you&apos;ve visited and rated. The more you
+                                interact, the smarter the recommendations
+                                become!
+                            </p>
+                        </div>
+                    )}
                 </Tooltip>
             </TooltipProvider>
         </div>

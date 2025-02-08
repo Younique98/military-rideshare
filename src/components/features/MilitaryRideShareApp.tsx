@@ -22,7 +22,6 @@ import { SargeRecommendations } from './Sarge/SargeReccomendations'
 const MilitaryRideShareApp = () => {
     const { showSnackbar } = useSnackbar()
     const { user } = useAuth()
-    console.log('user in military app', user)
     const [activeView, setActiveView] = useState('main') // main, ride, profile
     const [menuOpen, setMenuOpen] = useState(false)
     const [idMeVerified, setIdMeVerified] = useState(false)
@@ -354,32 +353,6 @@ const MilitaryRideShareApp = () => {
                                 </>
                                 {/* // TODO: (ET) replace with populated locations or have recommendations from our AI "Sarge" based on user history and ratings of places visited*/}
                                 <SargeRecommendations />
-                                <div className="relative w-full p-4 pl-12 border rounded-lg">
-                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                                    <h3> Coffee Beanery</h3>
-                                    <p> 1234 Beanery Dr, Anywhere, NC 28310</p>
-                                </div>
-                                <div className="relative w-full p-4 pl-12 border rounded-lg">
-                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                                    <h3> Turnpike Trails</h3>
-                                    <p>
-                                        {' '}
-                                        5648 Turnpike Way, Anywhere, NC 28310
-                                    </p>
-                                </div>
-                                <div className="relative w-full p-4 pl-12 border rounded-lg">
-                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                                    <h3> River Walk</h3>
-                                    <p>
-                                        {' '}
-                                        9876 WalkItOut Dr, Anywhere, NC 28310
-                                    </p>
-                                </div>
-                                <div className="relative w-full p-4 pl-12 border rounded-lg">
-                                    <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                                    <h3> Cupcakes & Sprinkles </h3>
-                                    <p> 9876 Dessert Dr, Anywhere, NC 28310</p>
-                                </div>
                             </>
                         ) : step === 2 ? (
                             <div className="space-y-6">

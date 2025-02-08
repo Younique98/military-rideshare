@@ -21,7 +21,6 @@ const UserAvatar = ({
     onImageUpload,
 }: IUserAvatar) => {
     const { user, isLoading } = useAuth()
-    console.log('user in avatar', user)
     // Size mappings
     const sizeClasses = {
         sm: 'h-10 w-10',
