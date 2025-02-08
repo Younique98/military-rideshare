@@ -1,16 +1,20 @@
-"use client";
+// src/app/Providers.tsx
+'use client';
 
-import { ReactNode } from "react";
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "@/lib/auth";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from '@/lib/auth';
+import { SnackbarProvider } from '@/contexts/Snackbar';
 
 const queryClient = new QueryClient();
 
-export default function Providers({ children }: { children: ReactNode }) {
+export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>{children}</AuthProvider>
+      <AuthProvider>
+        <SnackbarProvider>
+          {children}
+        </SnackbarProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

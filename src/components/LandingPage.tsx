@@ -161,7 +161,7 @@ const LandingPage = () => {
                         <div className="relative rounded-xl bg-gray-900/5 p-2">
                             <div className="flex justify-center">
                                 <Image
-                                    src="/api/placeholder/280/560"
+                                    src="/images/map/map_of_vegas.png"
                                     alt="App preview"
                                     width={280}
                                     height={560}
