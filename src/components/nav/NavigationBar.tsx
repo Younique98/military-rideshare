@@ -41,18 +41,22 @@ export const NavigationBar = ({ menuOpen, setMenuOpen }: INavigationBar) => {
                         </span>
                     </div>
                     <div className="flex items-center space-x-6">
-                        <button
-                            onClick={() => router.push('/')} // Link to Home
-                            className="text-gray-600 hover:text-gray-900 font-medium"
-                        >
-                            Home
-                        </button>
-                        <button
-                            onClick={() => router.push('/profile')} // Link to Profile
-                            className="text-gray-600 hover:text-gray-900 font-medium"
-                        >
-                            Profile
-                        </button>
+                        {!isMobile && (
+                            <div>
+                                <button
+                                    onClick={() => router.push('/')} // Link to Home
+                                    className="text-gray-600 hover:text-gray-900 font-medium"
+                                >
+                                    Home
+                                </button>
+                                <button
+                                    onClick={() => router.push('/profile')} // Link to Profile
+                                    className="text-gray-600 hover:text-gray-900 font-medium"
+                                >
+                                    Profile
+                                </button>
+                            </div>
+                        )}
                         <div>
                             <UserAvatar size="md" />
                         </div>
