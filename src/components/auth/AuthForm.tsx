@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { auth } from '@/lib/firebase/config'
 import {
     createUserWithEmailAndPassword,
-    signOut,
     onAuthStateChanged,
     fetchSignInMethodsForEmail,
     AuthError,
@@ -12,7 +11,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { handleGoogleSignIn } from '@/utils/helpers/handleGoogleSignIn'
 import Link from 'next/link'
-import { signIn } from '@/utils/helpers/authHelpers'
+import { signIn, signOutUser } from '@/utils/helpers/authHelpers'
 import { useSnackbar } from '@/contexts/Snackbar'
 
 interface IAuthForm {
@@ -78,8 +77,8 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                         email,
                         password
                     )
-                    console.log('✅ Account created:', newUser.user)
                     router.replace('/rideapp')
+                    return newUser.user
                 } catch (createError) {
                     if (
                         (createError as AuthError).code ===
@@ -120,7 +119,7 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
     // Explicitly sign out (not automatically)
     const handleSignOut = async () => {
         try {
-            await signOut(auth)
+            await signOutUser()
             setUser(null)
             router.replace('/login')
         } catch (err) {

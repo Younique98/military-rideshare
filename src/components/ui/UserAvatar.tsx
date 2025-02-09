@@ -90,8 +90,6 @@ export const UserAvatar = ({
 
             // Update Firebase Auth `photoURL`
             await updateProfile(user, { photoURL: downloadURL })
-
-            console.log('Profile updated successfully!')
         } catch (error) {
             console.error('Error updating profile:', error)
         } finally {

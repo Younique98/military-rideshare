@@ -1,24 +1,14 @@
 'use client'
 
 import React, { useState } from 'react'
-import {
-    Shield,
-    MapPin,
-    Menu,
-    X,
-    LogOut,
-    Clock,
-    ChevronRight,
-} from 'lucide-react'
+import { Shield, MapPin, Clock, ChevronRight } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import Image from 'next/image'
-import {UserAvatar} from '../ui/UserAvatar'
 import { SargeRecommendations } from './Sarge/SargeReccomendations'
 import { redirect } from 'next/navigation'
 
 const MilitaryRideShareApp = () => {
     const [activeView, setActiveView] = useState('main') // main, ride, profile
-    const [menuOpen, setMenuOpen] = useState(false)
     const [idMeVerified, setIdMeVerified] = useState(false)
     const [pickup, setPickup] = useState('')
     const [dropoff, setDropoff] = useState('')
@@ -44,7 +34,6 @@ const MilitaryRideShareApp = () => {
         },
     ]
 
-
     const handleIdMeVerification = () => {
         // Mock ID.me verification process
         setIdMeVerified(true)
@@ -65,101 +54,12 @@ const MilitaryRideShareApp = () => {
         }
     }
 
-    if ( activeView === 'profile' ) { 
-        redirect ('/profile')
+    if (activeView === 'profile') {
+        redirect('/profile')
     }
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Navigation Bar */}
-            <nav className="bg-white shadow-sm py-2">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="flex justify-between h-16">
-                        <div className="flex items-center">
-                            <button
-                                onClick={() => setMenuOpen(!menuOpen)}
-                                className="p-2 rounded-md text-gray-600 hover:text-gray-900 focus:outline-none"
-                            >
-                                {menuOpen ? (
-                                    <X className="h-6 w-6" />
-                                ) : (
-                                    <Menu className="h-6 w-6" />
-                                )}
-                            </button>
-                            <span className="ml-2 font-semibold text-2xl md:text-3xl">
-                                Base Link
-                            </span>
-                        </div>
-                        <div className="flex items-center">
-                            <button
-                                onClick={() => redirect('/profile')}
-                                className="rounded-full text-gray-600 hover:text-gray-900"
-                            >
-                                <div>
-                                    <UserAvatar
-                                        size="md"
-                                    />
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            {/* Sidebar Menu */}
-            {menuOpen && (
-                <div className="fixed inset-0 z-40">
-                    <div
-                        className="fixed inset-0 bg-black/30"
-                        onClick={() => setMenuOpen(false)}
-                    />
-                    <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg z-50">
-                        <div className="p-4">
-                            <div className="flex items-center justify-between mb-8">
-                                <span className="font-semibold text-lg">
-                                    Menu
-                                </span>
-                                <button onClick={() => setMenuOpen(false)}>
-                                    <X className="h-6 w-6" />
-                                </button>
-                            </div>
-                            <ul className="space-y-2">
-                                <li>
-                                    <button
-                                        onClick={() => {
-                                            setActiveView('main')
-                                            setMenuOpen(false)
-                                        }}
-                                        className="w-full text-left px-4 py-2 rounded-md hover:bg-gray-100"
-                                    >
-                                        Home
-                                    </button>
-                                </li>
-                                <li>
-                                    <button
-                                        onClick={() => {
-                                            setActiveView('profile')
-                                            setMenuOpen(false)
-                                        }}
-                                        className="w-full text-left px-4 py-2 rounded-md hover:bg-gray-100"
-                                    >
-                                        Profile
-                                    </button>
-                                </li>
-                                <li>
-                                    <button className="w-full text-left px-4 py-2 rounded-md hover:bg-gray-100 text-red-600">
-                                        <span className="flex items-center">
-                                            <LogOut className="h-5 w-5 mr-2" />
-                                            Sign Out
-                                        </span>
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 py-8">
                 {!idMeVerified ? (
@@ -381,7 +281,7 @@ const MilitaryRideShareApp = () => {
                             </div>
                         )}
                     </div>
-                        ) : null}
+                ) : null}
             </main>
         </div>
     )
