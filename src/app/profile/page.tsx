@@ -19,7 +19,7 @@ const recentRides = [
         status: 'Completed',
     },
 ]
-
+// TODO: (ET) Make sure avatar is compatible with Firefox browswer
 export default function ProfilePage() {
     const { user } = useAuth()
     return (

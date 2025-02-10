@@ -57,6 +57,7 @@ export const SidebarMenu = ({
                                 onClick={() => signOutUser()}
                             >
                                 <span className="flex items-center">
+                                    {/* //TODO (ET) fix the signout button did not redirect to login screen */}
                                     <LogOut className="h-5 w-5 mr-2" />
                                     Sign Out
                                 </span>

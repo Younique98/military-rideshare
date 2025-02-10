@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { SargeRecommendations } from './Sarge/SargeReccomendations'
 import { redirect } from 'next/navigation'
 
+//TODO: (ET) Breakout this component into smaller components and their own pages
 const MilitaryRideShareApp = () => {
     const [activeView, setActiveView] = useState('main') // main, ride, profile
     const [idMeVerified, setIdMeVerified] = useState(false)

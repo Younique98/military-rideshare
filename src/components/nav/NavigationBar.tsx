@@ -10,6 +10,7 @@ interface INavigationBar {
     setMenuOpen: (open: boolean) => void
 }
 
+//TODO: (ET) Nav bar should be hidden when signed out
 export const NavigationBar = ({ menuOpen, setMenuOpen }: INavigationBar) => {
     const router = useRouter()
     const isMobile = useIsMobile()
@@ -43,6 +44,7 @@ export const NavigationBar = ({ menuOpen, setMenuOpen }: INavigationBar) => {
                     <div className="flex items-center space-x-6">
                         {!isMobile && (
                             <div>
+                                {/* // TODO: FIx spacing between Home and Profile */}
                                 <button
                                     onClick={() => router.push('/')} // Link to Home
                                     className="text-gray-600 hover:text-gray-900 font-medium"
