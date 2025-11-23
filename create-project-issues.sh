@@ -9,33 +9,9 @@ set -e
 echo "🚀 Creating GitHub Project Board Issues for Base Link"
 echo "=================================================="
 
-# Create labels first
-echo ""
-echo "📋 Creating project labels..."
-
-# Phase labels
-gh label create "phase-1-core" --description "Phase 1: Core Functionality" --color "0052CC" --force
-gh label create "phase-2-security" --description "Phase 2: Verification & Security" --color "00875A" --force
-gh label create "phase-3-advanced" --description "Phase 3: Real-time & Advanced Features" --color "FF991F" --force
-gh label create "phase-4-launch" --description "Phase 4: Polish & Launch" --color "6554C0" --force
-
-# Priority labels
-gh label create "priority-high" --description "High priority task" --color "D73A4A" --force
-gh label create "priority-medium" --description "Medium priority task" --color "FBCA04" --force
-gh label create "priority-low" --description "Low priority task" --color "0E8A16" --force
-
-# Type labels
-gh label create "database" --description "Database/Firestore related" --color "C5DEF5" --force
-gh label create "api" --description "API development" --color "BFD4F2" --force
-gh label create "frontend" --description "Frontend/UI work" --color "D4C5F9" --force
-gh label create "integration" --description "Third-party integration" --color "F9C5D5" --force
-gh label create "testing" --description "Testing related" --color "C5F9D5" --force
-gh label create "documentation" --description "Documentation" --color "FEF2C0" --force
-gh label create "security" --description "Security related" --color "FF6B6B" --force
-
-echo "✅ Labels created successfully!"
 echo ""
 echo "📝 Creating issues by phase..."
+echo "   (Labels will be automatically created when used)"
 echo ""
 
 # ============================================================================
