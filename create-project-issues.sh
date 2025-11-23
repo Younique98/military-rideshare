@@ -10,8 +10,30 @@ echo "🚀 Creating GitHub Project Board Issues for Base Link"
 echo "=================================================="
 
 echo ""
+echo "📋 Creating project labels..."
+
+# Create labels using GitHub API
+gh api repos/:owner/:repo/labels -f name="phase-1-core" -f description="Phase 1: Core Functionality" -f color="0052CC" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="phase-2-security" -f description="Phase 2: Verification & Security" -f color="00875A" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="phase-3-advanced" -f description="Phase 3: Real-time & Advanced Features" -f color="FF991F" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="phase-4-launch" -f description="Phase 4: Polish & Launch" -f color="6554C0" 2>/dev/null || true
+
+gh api repos/:owner/:repo/labels -f name="priority-high" -f description="High priority task" -f color="D73A4A" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="priority-medium" -f description="Medium priority task" -f color="FBCA04" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="priority-low" -f description="Low priority task" -f color="0E8A16" 2>/dev/null || true
+
+gh api repos/:owner/:repo/labels -f name="database" -f description="Database/Firestore related" -f color="C5DEF5" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="api" -f description="API development" -f color="BFD4F2" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="frontend" -f description="Frontend/UI work" -f color="D4C5F9" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="integration" -f description="Third-party integration" -f color="F9C5D5" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="testing" -f description="Testing related" -f color="C5F9D5" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="documentation" -f description="Documentation" -f color="FEF2C0" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="security" -f description="Security related" -f color="FF6B6B" 2>/dev/null || true
+gh api repos/:owner/:repo/labels -f name="infrastructure" -f description="Infrastructure/DevOps" -f color="E99695" 2>/dev/null || true
+
+echo "✅ Labels created successfully!"
+echo ""
 echo "📝 Creating issues by phase..."
-echo "   (Labels will be automatically created when used)"
 echo ""
 
 # ============================================================================
