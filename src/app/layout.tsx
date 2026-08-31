@@ -13,10 +13,32 @@ const geistMono = Geist_Mono({
     subsets: ['latin'],
 })
 
+const SITE_URL = 'https://baselink.app'
+const DESCRIPTION =
+    'Base Link is a secure, military-verified rideshare platform built exclusively for service members and their dependents, connecting the military community with safe, reliable transportation between installations.'
+
 export const metadata: Metadata = {
-    title: 'Base Link',
-    description:
-        'The Military Ride-Share App is a secure and efficient Flutter-based platform designed exclusively for military personnel and their dependents. It facilitates seamless ride-sharing within the military community, ensuring safe and reliable transportation options tailored to their unique needs.',
+    metadataBase: new URL(SITE_URL),
+    title: {
+        default: 'Base Link - Military Rideshare',
+        template: '%s | Base Link',
+    },
+    description: DESCRIPTION,
+    alternates: {
+        canonical: '/',
+    },
+    openGraph: {
+        type: 'website',
+        siteName: 'Base Link',
+        title: 'Base Link - Military Rideshare',
+        description: DESCRIPTION,
+        url: SITE_URL,
+    },
+    twitter: {
+        card: 'summary',
+        title: 'Base Link - Military Rideshare',
+        description: DESCRIPTION,
+    },
 }
 
 export default function RootLayout({
