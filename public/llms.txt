@@ -1,0 +1,25 @@
+# Base Link
+
+> A secure, military-verified rideshare platform built exclusively for
+> service members and their dependents, connecting the military community
+> with safe, reliable transportation between installations.
+
+Base Link verifies riders and drivers through ID.me before they can join,
+then connects them for base-to-base and nearby rides within the military
+community.
+
+## Key pages
+
+- [Join](https://baselink.app/join): Overview of Base Link and the
+  waitlist signup.
+- [Log in](https://baselink.app/login): Sign in to an existing account.
+- [Register](https://baselink.app/register): Create a new account.
+
+## Technical implementation
+
+- **Framework:** Next.js 14 (App Router), TypeScript, Tailwind CSS
+- **Auth:** ID.me verification + Firebase Authentication
+- **Database:** Firebase Firestore
+- **Maps:** Google Maps Platform
+
+Source and full documentation: https://github.com/Younique98/military-rideshare
