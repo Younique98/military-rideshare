@@ -17,7 +17,7 @@ community.
 
 ## Technical implementation
 
-- **Framework:** Next.js 14 (App Router), TypeScript, Tailwind CSS
+- **Framework:** Next.js 15 (App Router), TypeScript, Tailwind CSS
 - **Auth:** ID.me verification + Firebase Authentication
 - **Database:** Firebase Firestore
 - **Maps:** Google Maps Platform
