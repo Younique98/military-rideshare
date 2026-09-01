@@ -1,5 +1,6 @@
 'use client'
 import { UserAvatar } from '@/components/ui/UserAvatar'
+import { RequireAuth } from '@/components/auth/RequireAuth'
 import { useAuth } from '@/hooks/useAuth'
 import { LogOut, Menu, Shield, X } from 'lucide-react'
 import { redirect } from 'next/navigation'
@@ -23,6 +24,14 @@ const recentRides = [
 ]
 
 export default function ProfilePage() {
+    return (
+        <RequireAuth>
+            <ProfilePageContent />
+        </RequireAuth>
+    )
+}
+
+function ProfilePageContent() {
     const [menuOpen, setMenuOpen] = useState(false)
 
     const { user } = useAuth()
@@ -35,6 +44,8 @@ export default function ProfilePage() {
                         <div className="flex items-center">
                             <button
                                 onClick={() => setMenuOpen(!menuOpen)}
+                                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                                aria-expanded={menuOpen}
                                 className="p-2 rounded-md text-gray-600 hover:text-gray-900 focus:outline-none"
                             >
                                 {menuOpen ? (
@@ -69,7 +80,10 @@ export default function ProfilePage() {
                                 <span className="font-semibold text-lg">
                                     Menu
                                 </span>
-                                <button onClick={() => setMenuOpen(false)}>
+                                <button
+                                    onClick={() => setMenuOpen(false)}
+                                    aria-label="Close menu"
+                                >
                                     <X className="h-6 w-6" />
                                 </button>
                             </div>
@@ -122,7 +136,7 @@ export default function ProfilePage() {
                             <p className="text-gray-600">
                                 U.S. Army - Active Duty
                             </p>
-                            <div className="mt-1 flex items-center text-sm text-green-600">
+                            <div className="mt-1 flex items-center text-sm text-green-700">
                                 <Shield className="h-4 w-4 mr-1" />
                                 ID.me Verified
                             </div>
@@ -150,7 +164,7 @@ export default function ProfilePage() {
                                             {ride.date}
                                         </div>
                                     </div>
-                                    <span className="text-sm text-green-600">
+                                    <span className="text-sm text-green-700">
                                         {ride.status}
                                     </span>
                                 </div>
