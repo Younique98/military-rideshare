@@ -22,7 +22,12 @@ body {
         --muted-foreground: 215.4 16.3% 46.9%;
         --accent: 43 72% 60%; /* Updated to Soft Gold */
         --accent-foreground: 222.2 47.4% 11.2%;
-        --destructive: 0 84.2% 60.2%;
+        /* Darkened from 60.2% to 45% lightness so white destructive-foreground
+           text/icons meet 4.5:1 (WCAG AA normal text) on this background —
+           verified with contrast-check.mjs. Same hue/saturation, still reads
+           as the same red, just deep enough to carry white text and text-on-
+           white use (e.g. the destructive Alert variant). */
+        --destructive: 0 84.2% 45%;
         --destructive-foreground: 210 40% 98%;
         --border: 214.3 31.8% 91.4%;
         --input: 214.3 31.8% 91.4%;
@@ -38,8 +43,17 @@ body {
         /* Base Link brand-specific colors */
         --brand-primary: 209 50% 36%; /* Steel Blue */
         --brand-secondary: 215 63% 27%; /* Marine Blue */
-        --brand-accent: 43 72% 60%; /* Soft Gold */
-        --brand-sage: 110 10% 43%; /* Sage Green */
+        /* --brand-accent is used as TEXT (e.g. the "Base Link" wordmark
+           highlight) on light/white backgrounds, where the original 60%
+           lightness only cleared 1.86:1. Darkened to 32% for 4.96:1 against
+           white (contrast-check.mjs). --accent, the separate token used as a
+           button *background* with --accent-foreground text, is untouched
+           and still the original Soft Gold. */
+        --brand-accent: 43 72% 32%; /* Soft Gold (darkened for text use) */
+        /* --brand-sage is used as TEXT (driver-verification card copy) on a
+           near-white card background, where 43% lightness only cleared
+           4.47:1. Darkened to 35% for 6.17:1 (contrast-check.mjs). */
+        --brand-sage: 110 10% 35%; /* Sage Green (darkened for text use) */
 
         --radius: 0.5rem;
     }
