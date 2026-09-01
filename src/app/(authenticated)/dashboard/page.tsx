@@ -1,9 +1,12 @@
 import MilitaryRideShareApp from '@/components/features/MilitaryRideShareApp'
+import { RequireAuth } from '@/components/auth/RequireAuth'
 
 export default function DashboardPage() {
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-            <MilitaryRideShareApp />
-        </div>
+        <RequireAuth>
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <MilitaryRideShareApp />
+            </div>
+        </RequireAuth>
     )
 }

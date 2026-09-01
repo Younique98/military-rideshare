@@ -114,6 +114,7 @@ export const UserAvatar = ({
         >
             <Button
                 onClick={() => router.push('/profile')}
+                aria-label="View your profile"
                 className={clsx(
                     'relative overflow-hidden rounded-full flex items-center justify-center',
                     sizeClasses[size] // Ensure button matches the size of the avatar

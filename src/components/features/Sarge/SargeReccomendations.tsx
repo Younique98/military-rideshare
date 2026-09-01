@@ -64,8 +64,17 @@ export const SargeRecommendations = () => {
                     {recommendations.map((rec, index) => (
                         <Card
                             key={index}
-                            className="w-full cursor-pointer hover:shadow-lg transition-shadow hover:scale-105 transform hover:ring-4 hover:ring-accent"
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`${rec.name}, ${rec.address}`}
+                            className="w-full cursor-pointer hover:shadow-lg transition-shadow hover:scale-105 transform hover:ring-4 hover:ring-accent focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent"
                             onClick={() => handleSelect(rec)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    handleSelect(rec)
+                                }
+                            }}
                         >
                             <Image
                                 src={rec.image}
@@ -92,14 +101,17 @@ export const SargeRecommendations = () => {
             </div>
             <TooltipProvider>
                 <Tooltip>
-                    <p
-                        className="mt-4 text-sm text-blue-500 cursor-pointer"
+                    <button
+                        type="button"
+                        className="mt-4 text-sm text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded"
                         onClick={() => setTooltipVisible(!tooltipVisible)}
+                        aria-expanded={tooltipVisible}
                     >
                         How does Sarge work?
-                    </p>
+                    </button>
                     {tooltipVisible && (
                         <div
+                            role="status"
                             className="absolute z-10 mt-2 p-4 bg-white text-black rounded-md shadow-lg max-w-xs w-full sm:max-w-sm"
                             style={{
                                 transition: 'opacity 0.3s ease',

@@ -139,9 +139,16 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                 {error && <p className="text-red-500 mb-4">{error}</p>}
 
                 <div className="mb-4">
-                    <label className="block text-sm text-gray-700">Email</label>
+                    <label
+                        htmlFor="auth-email"
+                        className="block text-sm text-gray-700"
+                    >
+                        Email
+                    </label>
                     <input
+                        id="auth-email"
                         type="email"
+                        autoComplete="email"
                         className="w-full p-2 border rounded-md focus:ring focus:ring-indigo-200"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -149,11 +156,18 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                 </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm text-gray-700">
+                    <label
+                        htmlFor="auth-password"
+                        className="block text-sm text-gray-700"
+                    >
                         Password
                     </label>
                     <input
+                        id="auth-password"
                         type="password"
+                        autoComplete={
+                            mode === 'login' ? 'current-password' : 'new-password'
+                        }
                         className="w-full p-2 border rounded-md focus:ring focus:ring-indigo-200"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -161,7 +175,7 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                 </div>
 
                 <button
-                    className="w-full bg-accent text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition"
+                    className="w-full bg-accent text-accent-foreground py-2 px-4 rounded-md hover:bg-indigo-700 transition"
                     onClick={handleAuth}
                     disabled={loading}
                 >
@@ -178,7 +192,7 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                 {/* // TODO: (ET move sign out button to navbar */}
                 {user && (
                     <button
-                        className="w-full mt-4 bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition"
+                        className="w-full mt-4 bg-destructive text-destructive-foreground py-2 px-4 rounded-md hover:opacity-90 transition"
                         onClick={handleSignOut}
                     >
                         Sign Out

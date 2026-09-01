@@ -1,0 +1,51 @@
+// ============================================================================
+// Firebase Storage Security Rules — Base Link (military-rideshare)
+// ============================================================================
+//
+// What this protects: rider/driver profile photos. The app currently writes
+// profile images to two different path conventions — a pre-existing
+// inconsistency in the code, not introduced by this rules file:
+//   - users/{userId}/profile-image   (src/utils/imageUpload.ts)
+//   - profileImages/{userId}.jpg     (src/components/ui/UserAvatar.tsx)
+// Both are covered below so neither upload path is accidentally left open.
+// Consider consolidating to a single path convention in application code as
+// a separate follow-up.
+//
+// Model: a profile photo may only be read or written by the account it
+// belongs to (request.auth.uid must match the {userId} segment in the
+// path). Nothing under this bucket is publicly readable. If a future
+// feature needs a rider to see their matched driver's photo (or vice
+// versa), add a narrow rule scoped to that pair via an active ride
+// document — do not simply open profile photos to "any authenticated
+// user".
+//
+// Deploying these rules: NOT deployed by this PR, only committed — see
+// firestore.rules' header for the same note (no .firebaserc project link is
+// checked into this repo). Run:
+//   firebase deploy --only firestore:rules,storage:rules
+// against the real Firebase project, or paste into the Firebase console
+// (Storage > Rules).
+// ============================================================================
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /users/{userId}/profile-image {
+      allow read, write: if request.auth != null
+                           && request.auth.uid == userId;
+    }
+
+    match /profileImages/{userId}.jpg {
+      allow read, write: if request.auth != null
+                           && request.auth.uid == userId;
+    }
+
+    // Default deny: anything outside the two paths above (and any
+    // unauthenticated request) is denied.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

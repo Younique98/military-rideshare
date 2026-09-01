@@ -73,6 +73,7 @@ export const SnackbarProvider = ({
                         </div>
                         <button
                             onClick={hideSnackbar}
+                            aria-label="Dismiss notification"
                             className="ml-4 hover:opacity-80 transition-opacity"
                         >
                             <X className="h-5 w-5" />

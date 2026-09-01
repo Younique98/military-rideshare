@@ -78,6 +78,8 @@ const MilitaryRideShareApp = () => {
                         <div className="flex items-center">
                             <button
                                 onClick={() => setMenuOpen(!menuOpen)}
+                                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                                aria-expanded={menuOpen}
                                 className="p-2 rounded-md text-gray-600 hover:text-gray-900 focus:outline-none"
                             >
                                 {menuOpen ? (
@@ -91,16 +93,13 @@ const MilitaryRideShareApp = () => {
                             </span>
                         </div>
                         <div className="flex items-center">
-                            <button
-                                onClick={() => redirect('/profile')}
-                                className="rounded-full text-gray-600 hover:text-gray-900"
-                            >
-                                <div>
-                                    <UserAvatar
-                                        size="md"
-                                    />
-                                </div>
-                            </button>
+                            {/* UserAvatar's own button already navigates to
+                                /profile — this used to be wrapped in a second
+                                <button>, which put an interactive control
+                                inside another interactive control (invalid
+                                for assistive tech) and duplicated the
+                                navigation. */}
+                            <UserAvatar size="md" />
                         </div>
                     </div>
                 </div>
@@ -119,7 +118,10 @@ const MilitaryRideShareApp = () => {
                                 <span className="font-semibold text-lg">
                                     Menu
                                 </span>
-                                <button onClick={() => setMenuOpen(false)}>
+                                <button
+                                    onClick={() => setMenuOpen(false)}
+                                    aria-label="Close menu"
+                                >
                                     <X className="h-6 w-6" />
                                 </button>
                             </div>
@@ -195,7 +197,7 @@ const MilitaryRideShareApp = () => {
                         <div className="relative w-full h-64 bg-gray-200 rounded-lg overflow-hidden">
                             <Image
                                 src="/images/map/map_of_vegas.png"
-                                alt="Map"
+                                alt="Map showing your current location and nearby available rides"
                                 width={800}
                                 height={400}
                                 className="w-full h-full object-cover"
@@ -234,7 +236,7 @@ const MilitaryRideShareApp = () => {
                                         >
                                             Military Verified
                                         </h3>
-                                        <p style={{ color: '#687864' }}>
+                                        <p className="text-brand-sage">
                                             All drivers are ID.me verified
                                         </p>
                                     </div>

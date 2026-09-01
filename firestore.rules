@@ -1,0 +1,90 @@
+// ============================================================================
+// Firestore Security Rules — Base Link (military-rideshare)
+// ============================================================================
+//
+// What this protects:
+//   - users/{userId}   Rider/driver profile documents (see
+//                       src/utils/user.ts: doc(db, 'users', userId)).
+//   - rides/{rideId}   Ride requests/matches — pickup/dropoff, status, fare,
+//                       and the riderId/driverId of the two people involved
+//                       (matches the Ride interface documented in
+//                       README.md). No live Firestore ride reads/writes
+//                       exist in the app code yet — as of this audit, ride
+//                       state is still client-side mock data in
+//                       MilitaryRideShareApp.tsx — but these rules are added
+//                       now so the collection is locked down the moment
+//                       ride-matching writes ship, instead of defaulting
+//                       open in the meantime.
+//
+// Model: every document is owned by the authenticated user(s) named in it.
+// Nothing here is publicly readable or writable, and unauthenticated
+// requests are denied. This is the fix for the "one user could see another
+// user's ride requests, location, or contact info" risk flagged in the
+// security audit on this PR — every rule below re-checks request.auth
+// itself rather than relying on the catch-all at the bottom alone.
+//
+// Deploying these rules: this repo has no Firebase CLI project link
+// (.firebaserc) checked in, and these rules are committed but NOT deployed
+// by this PR. To make them take effect, either paste this file's contents
+// into the Firebase console (Firestore Database > Rules) for the project
+// backing NEXT_PUBLIC_FIREBASE_PROJECT_ID, or, once authenticated against
+// the real project, run:
+//   firebase deploy --only firestore:rules,storage:rules
+// (firebase.json in this repo already points the CLI at this file and at
+// storage.rules).
+// ============================================================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- users/{userId} ----------------------------------------------
+    // One profile document per account, keyed by the Firebase Auth uid.
+    // A user may only read or write their own profile — never another
+    // rider's or driver's name, photo, or verification status.
+    match /users/{userId} {
+      allow read, write: if request.auth != null
+                          && request.auth.uid == userId;
+    }
+
+    // --- rides/{rideId} -------------------------------------------------
+    // A ride is visible only to the two people party to it: the rider who
+    // requested it and, once matched, the driver assigned to it. This is
+    // the core anti-IDOR rule for this app.
+    match /rides/{rideId} {
+      allow read: if request.auth != null
+                   && (resource.data.riderId == request.auth.uid
+                       || resource.data.driverId == request.auth.uid);
+
+      // A user may only ever create a ride request as themselves — never
+      // on behalf of, or impersonating, another rider.
+      allow create: if request.auth != null
+                     && request.resource.data.riderId == request.auth.uid;
+
+      // Only the rider or the currently-assigned driver on a ride may
+      // update it (e.g. accepting the ride, changing its status). Tighten
+      // this further (e.g. restrict which fields each role may change,
+      // or require driverId to only be set once and only by a matching
+      // service) once real ride-matching write logic exists — no such
+      // writes exist in the app today, so this rule is deliberately
+      // conservative rather than guessing at unbuilt business rules.
+      allow update: if request.auth != null
+                     && (resource.data.riderId == request.auth.uid
+                         || resource.data.driverId == request.auth.uid);
+
+      // No client-side deletes — a ride should be cancelled via a status
+      // field (and eventually validated by a trusted backend), not
+      // removed outright, so history/auditing isn't lost.
+      allow delete: if false;
+    }
+
+    // --- default deny ----------------------------------------------------
+    // Anything not explicitly matched above (and any unauthenticated
+    // request) is denied. This is a safety net, not the primary control —
+    // every match block above already re-checks request.auth itself.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
