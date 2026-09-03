@@ -3,25 +3,38 @@
 // ============================================================================
 //
 // What this protects:
-//   - users/{userId}   Rider/driver profile documents (see
-//                       src/utils/user.ts: doc(db, 'users', userId)).
-//   - rides/{rideId}   Ride requests/matches — pickup/dropoff, status, fare,
-//                       and the riderId/driverId of the two people involved
-//                       (matches the Ride interface documented in
-//                       README.md). No live Firestore ride reads/writes
-//                       exist in the app code yet — as of this audit, ride
-//                       state is still client-side mock data in
-//                       MilitaryRideShareApp.tsx — but these rules are added
-//                       now so the collection is locked down the moment
-//                       ride-matching writes ship, instead of defaulting
-//                       open in the meantime.
+//   - users/{userId}    Rider/driver profile documents (see
+//                        src/utils/user.ts, src/lib/firebase/admin.ts).
+//   - rides/{rideId}     Real ride requests/matches with a real status
+//                        lifecycle — see src/types/ride.ts and
+//                        src/lib/firebase/rides.ts. Ride creation itself is
+//                        additionally gated behind NEXT_PUBLIC_PLATFORM_LAUNCHED
+//                        in application code (src/lib/launch.ts) — these
+//                        rules govern *who may touch which fields once a
+//                        write is attempted*, not the pre-launch business
+//                        gate, which Firestore rules cannot see (it's a
+//                        server env var, not data).
+//   - waitlist/{docId}   "Notify me" signups collected while the platform
+//                        is not yet launched (see src/lib/firebase/waitlist.ts).
 //
-// Model: every document is owned by the authenticated user(s) named in it.
-// Nothing here is publicly readable or writable, and unauthenticated
-// requests are denied. This is the fix for the "one user could see another
-// user's ride requests, location, or contact info" risk flagged in the
-// security audit on this PR — every rule below re-checks request.auth
-// itself rather than relying on the catch-all at the bottom alone.
+// Model: every document is owned by the authenticated user(s) named in it,
+// nothing here is publicly readable or writable, and unauthenticated
+// requests are denied. Every match block re-checks request.auth itself
+// rather than relying on the catch-all default-deny alone.
+//
+// A second, equally important property of the rules below: several fields
+// are never trusted from the client, no matter who is making the request —
+//   - users/{uid}.stripeConnectedAccountId and .stripeOnboardingComplete are
+//     only ever written by the Admin SDK (Stripe Connect onboarding route /
+//     webhook — see src/app/api/stripe/**), which bypasses these rules
+//     entirely. The rules below actively block the *client* from setting or
+//     changing either field, so a user can never grant themselves driver
+//     payout eligibility by editing their own profile document.
+//   - rides/{rideId}.fare, .riderId, .pickup, .dropoff, .requestedAt and
+//     .payment are immutable from the client after creation. Only the
+//     Admin SDK (via the Stripe payment routes / webhook) may write
+//     .payment or move a ride into 'PAID' — the rules below never allow a
+//     client update to reach that status.
 //
 // Deploying these rules: this repo has no Firebase CLI project link
 // (.firebaserc) checked in, and these rules are committed but NOT deployed
@@ -39,44 +52,135 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // An "eligible driver" for reading the open-ride queue and accepting a
+    // ride is one whose Stripe Connect onboarding has actually completed —
+    // a fact only the Stripe webhook can set (see users/{userId} below).
+    // This intentionally ties ride-matching eligibility to "this driver can
+    // actually be paid", rather than a self-declared role field.
+    function isOnboardedDriver(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid))
+        && get(/databases/$(database)/documents/users/$(uid)).data.get('stripeOnboardingComplete', false) == true;
+    }
+
     // --- users/{userId} ----------------------------------------------
     // One profile document per account, keyed by the Firebase Auth uid.
-    // A user may only read or write their own profile — never another
-    // rider's or driver's name, photo, or verification status.
+    // A user may only read their own profile — never another rider's or
+    // driver's name, photo, or verification status.
     match /users/{userId} {
-      allow read, write: if request.auth != null
-                          && request.auth.uid == userId;
+      allow read: if request.auth != null
+                   && request.auth.uid == userId;
+
+      // A user may create their own profile document, but not with Stripe
+      // payout eligibility already turned on — that can only come from a
+      // real completed Stripe Connect onboarding, recorded server-side.
+      allow create: if request.auth != null
+                     && request.auth.uid == userId
+                     && request.resource.data.get('stripeOnboardingComplete', false) == false
+                     && request.resource.data.get('stripeConnectedAccountId', null) == null;
+
+      // A user may update their own profile, but stripeConnectedAccountId
+      // and stripeOnboardingComplete must be left exactly as they were —
+      // only the Stripe Connect onboarding route / webhook (Admin SDK,
+      // which bypasses these rules) may change them.
+      allow update: if request.auth != null
+                     && request.auth.uid == userId
+                     && request.resource.data.get('stripeConnectedAccountId', null) == resource.data.get('stripeConnectedAccountId', null)
+                     && request.resource.data.get('stripeOnboardingComplete', false) == resource.data.get('stripeOnboardingComplete', false);
+
+      allow delete: if false;
     }
 
     // --- rides/{rideId} -------------------------------------------------
-    // A ride is visible only to the two people party to it: the rider who
-    // requested it and, once matched, the driver assigned to it. This is
-    // the core anti-IDOR rule for this app.
+    // Status lifecycle: REQUESTED -> ACCEPTED -> IN_PROGRESS -> COMPLETED
+    // -> PAID, or CANCELLED out of REQUESTED/ACCEPTED. See src/types/ride.ts.
     match /rides/{rideId} {
+
+      // Visible to: the rider who requested it, the driver assigned to it
+      // once matched, and — only while still REQUESTED and driverless — any
+      // onboarded driver browsing the open-ride queue.
       allow read: if request.auth != null
                    && (resource.data.riderId == request.auth.uid
-                       || resource.data.driverId == request.auth.uid);
+                       || resource.data.driverId == request.auth.uid
+                       || (resource.data.status == 'REQUESTED'
+                           && resource.data.driverId == null
+                           && isOnboardedDriver(request.auth.uid)));
 
-      // A user may only ever create a ride request as themselves — never
-      // on behalf of, or impersonating, another rider.
+      // A rider may only ever create a ride as themselves, in the
+      // REQUESTED state, with no driver and no payment data attached yet.
+      // (Whether ride creation is allowed AT ALL right now is a separate,
+      // application-level gate — see NEXT_PUBLIC_PLATFORM_LAUNCHED in
+      // src/lib/launch.ts / src/lib/firebase/rides.ts — Firestore rules
+      // have no visibility into that server env var.)
       allow create: if request.auth != null
-                     && request.resource.data.riderId == request.auth.uid;
+                     && request.resource.data.riderId == request.auth.uid
+                     && request.resource.data.status == 'REQUESTED'
+                     && request.resource.data.driverId == null
+                     && request.resource.data.fare is number
+                     && request.resource.data.fare > 0
+                     && request.resource.data.pickup is map
+                     && request.resource.data.dropoff is map
+                     && !('payment' in request.resource.data);
 
-      // Only the rider or the currently-assigned driver on a ride may
-      // update it (e.g. accepting the ride, changing its status). Tighten
-      // this further (e.g. restrict which fields each role may change,
-      // or require driverId to only be set once and only by a matching
-      // service) once real ride-matching write logic exists — no such
-      // writes exist in the app today, so this rule is deliberately
-      // conservative rather than guessing at unbuilt business rules.
+      // Every update path below requires the rider, pickup/dropoff, fare,
+      // requestedAt and payment fields to be byte-for-byte unchanged — none
+      // of those may ever be altered by a client-side update, regardless of
+      // which transition is being made.
       allow update: if request.auth != null
-                     && (resource.data.riderId == request.auth.uid
-                         || resource.data.driverId == request.auth.uid);
+                     && request.resource.data.riderId == resource.data.riderId
+                     && request.resource.data.pickup == resource.data.pickup
+                     && request.resource.data.dropoff == resource.data.dropoff
+                     && request.resource.data.fare == resource.data.fare
+                     && request.resource.data.requestedAt == resource.data.requestedAt
+                     && request.resource.data.get('payment', null) == resource.data.get('payment', null)
+                     && (
+                       // An onboarded driver claims a still-open ride.
+                       (resource.data.status == 'REQUESTED'
+                         && resource.data.driverId == null
+                         && request.resource.data.status == 'ACCEPTED'
+                         && request.resource.data.driverId == request.auth.uid
+                         && isOnboardedDriver(request.auth.uid))
 
-      // No client-side deletes — a ride should be cancelled via a status
-      // field (and eventually validated by a trusted backend), not
-      // removed outright, so history/auditing isn't lost.
+                       // The already-assigned driver advances their own ride
+                       // one step at a time. driverId itself never changes
+                       // here.
+                       || (resource.data.driverId == request.auth.uid
+                           && request.resource.data.driverId == resource.data.driverId
+                           && (
+                             (resource.data.status == 'ACCEPTED' && request.resource.data.status == 'IN_PROGRESS')
+                             || (resource.data.status == 'IN_PROGRESS' && request.resource.data.status == 'COMPLETED')
+                           ))
+
+                       // The rider or the assigned driver cancels before the
+                       // ride is underway.
+                       || ((resource.data.riderId == request.auth.uid || resource.data.driverId == request.auth.uid)
+                           && resource.data.status in ['REQUESTED', 'ACCEPTED']
+                           && request.resource.data.status == 'CANCELLED'
+                           && request.resource.data.driverId == resource.data.driverId)
+                     );
+                     // Note: there is deliberately no client-reachable branch
+                     // that produces status == 'PAID', and .payment can never
+                     // be written by a client update (see the shared
+                     // unchanged-field checks above) — both only ever happen
+                     // via the Stripe webhook using the Admin SDK, which
+                     // bypasses these rules. See src/app/api/stripe/webhook.
+
+      // No client-side deletes — a ride should be cancelled via its status
+      // field, not removed outright, so history/auditing isn't lost.
       allow delete: if false;
+    }
+
+    // --- waitlist/{docId} ------------------------------------------------
+    // "Notify me when Base Link launches" signups collected while
+    // NEXT_PUBLIC_PLATFORM_LAUNCHED is not "true" — see
+    // src/lib/firebase/waitlist.ts. Write-only from the client's
+    // perspective: a signup can be created and then never read back,
+    // changed, or deleted by the person who submitted it (or anyone else).
+    match /waitlist/{docId} {
+      allow create: if request.auth != null
+                     && request.resource.data.userId == request.auth.uid
+                     && request.resource.data.email is string
+                     && request.resource.data.email.size() > 0;
+      allow read, update, delete: if false;
     }
 
     // --- default deny ----------------------------------------------------
