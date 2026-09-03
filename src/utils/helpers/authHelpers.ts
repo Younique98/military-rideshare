@@ -24,7 +24,7 @@ export const signIn = async (email: string, password: string) => {
       return signInWithGoogle();
     } else if (signInMethods.includes("password")) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("✅ Signed in successfully:", userCredential.user);
+      console.log("✅ Signed in successfully");
       return userCredential.user;
     } else {
         // TODO: (ET) Handle this in a banner instead of an alert
@@ -43,7 +43,7 @@ export const signInWithGoogle = async () => {
   try {
     await setPersistence(auth, browserLocalPersistence);
     const result = await signInWithPopup(auth, provider);
-    console.log("✅ Google Sign-In Success:", result.user);
+    console.log("✅ Google Sign-In Success");
     return result.user;
   } catch (error) {
     handleAuthError(error as FirebaseError);

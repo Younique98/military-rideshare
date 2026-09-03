@@ -73,12 +73,12 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                 }
 
                 try {
-                    const newUser = await createUserWithEmailAndPassword(
+                    await createUserWithEmailAndPassword(
                         auth,
                         email,
                         password
                     )
-                    console.log('✅ Account created:', newUser.user)
+                    console.log('✅ Account created')
                     router.replace('/rideapp')
                 } catch (createError) {
                     if (
