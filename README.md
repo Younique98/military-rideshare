@@ -16,25 +16,45 @@ vision the project is being built toward — see [Status](#status) below.
 - A **demo-gated mock** military-verification flow (see
   [Military Verification](#military-verification) below) — not a real
   ID.me integration
-- Client-side mock ride request flow (pickup/dropoff → confirm → "finding a
-  ride" → reset) using in-memory state, not live Firestore data
+- A **real** ride data model in Firestore (`rides/{rideId}`, see
+  [Database Schema](#database-schema)) with a real status lifecycle —
+  REQUESTED → ACCEPTED → IN_PROGRESS → COMPLETED → PAID, or CANCELLED —
+  written and read through `src/lib/firebase/rides.ts`, not mock/in-memory
+  data anymore
+- A **real** Stripe Connect (Express) marketplace payment integration —
+  driver onboarding, a PaymentIntent per completed ride split
+  automatically between the platform and the driver, and a webhook that
+  reconciles both — see `src/app/api/stripe/**` and
+  [Payments (Stripe Connect)](#payments-stripe-connect) below
 - Firestore and Storage security rules (`firestore.rules` / `storage.rules`)
-  scoping every document to the user who owns it — committed to the repo as
+  scoping every document to the user who owns it, including the real ride
+  lifecycle and Stripe-controlled fields above — committed to the repo as
   rules-as-code, but **not yet deployed** to a live Firebase project (see
   the header comment in each file for why, and what deploying them requires)
+- A **pre-launch gate** (`NEXT_PUBLIC_PLATFORM_LAUNCHED`) that keeps the
+  real ride booking/payment code above from being reachable by real users
+  until Base Link is actually licensed to operate — see
+  [Pre-Launch Gate](#pre-launch-gate) below. This is the most important
+  section in this README if you're deploying this app anywhere.
 - Security response headers (CSP, `X-Frame-Options`, `X-Content-Type-Options`,
   `Referrer-Policy`, `Permissions-Policy`) set in `next.config.ts`
 
 **Planned / not yet implemented:**
 - A real ID.me OAuth integration with a server-side token exchange
-- Backend API routes for auth, ride matching, and verification (today all
-  auth goes through the Firebase client SDK directly; there are no
-  `src/app/api/*` routes)
+- Real distance/time-based fare pricing (today's fare is a flat
+  placeholder — see `src/lib/fare.ts`) once a live maps/routing
+  integration exists
+- A real card-collection UI (Stripe Elements) on the rider side — the
+  PaymentIntent creation route exists and is real, but nothing yet renders
+  Stripe's card form to actually confirm it
 - Live ride matching against real driver/rider Firestore data
 - End-to-end message encryption
 - Military base geofencing / sensitive-location masking
 - Automated dependency/security scanning wired into CI
 - Data retention/purging policies
+- The actual TNC (Transportation Network Company) license and insurance
+  required before `NEXT_PUBLIC_PLATFORM_LAUNCHED` can be turned on for
+  real — see [Pre-Launch Gate](#pre-launch-gate)
 
 The [Database Schema](#database-schema) and [Security Features](#security-features)
 sections below describe both what's live now and where each planned piece
@@ -61,6 +81,80 @@ check — so the verification button's behavior depends on the
 See `.env.example` for the full list of variables, and
 `src/components/features/MilitaryRideShareApp.tsx` for the implementation.
 
+## Pre-Launch Gate
+
+**Read this before deploying this app anywhere real.**
+
+Most US states require a Transportation Network Company (TNC) license
+before a ride-matching-for-pay service can operate for real, paying users
+— Virginia's license alone runs $100K+; other states are cheaper or free
+but still require insurance. Base Link does not have that license or
+insurance yet, in any state.
+
+The real ride-booking and Stripe Connect payment code described in
+[Database Schema](#database-schema) and
+[Payments (Stripe Connect)](#payments-stripe-connect) is fully built — not
+a stub — but it stays off for real users behind one flag:
+`NEXT_PUBLIC_PLATFORM_LAUNCHED`.
+
+- **Unset or anything other than the exact string `"true"` (default, and
+  what must ship to production until licensing/insurance is sorted):**
+  the ride-request screen shows a clear "Base Link is in pre-launch
+  testing" banner, and "Request a Ride" routes to a waitlist / notify-me
+  signup instead of creating a real ride. This is enforced in more than
+  one place on purpose, so a UI bug or a missing env var can't
+  accidentally open real charges:
+  1. `MilitaryRideShareApp.tsx` — the banner and the waitlist routing.
+  2. `createRideRequest()` in `src/lib/firebase/rides.ts` — refuses to
+     write a ride document at all.
+  3. `POST /api/stripe/payment/create-intent` — refuses to create a real
+     Stripe charge, independent of what any client sends it.
+- **`NEXT_PUBLIC_PLATFORM_LAUNCHED=true`:** the real flow goes live —
+  rides can be created and paid for through Stripe Connect.
+
+This fails closed by design (see `src/lib/launch.ts`): only the exact
+string `"true"` turns it on. Unset, empty, `"false"`, `"1"`, a typo, or
+any other value all mean "not launched." Never set this to `"true"` in a
+real deployment until the actual TNC license and insurance are in place.
+
+## Payments (Stripe Connect)
+
+Rider payments are not a simple "customer pays the platform" flow — a
+rider pays for a ride, and the driver has to actually receive that money
+minus Base Link's cut. This uses **Stripe Connect** with Express accounts
+and destination charges:
+
+1. **Driver onboarding** (`POST /api/stripe/connect/onboarding-link`) —
+   creates a Stripe Connect Express account for the calling driver (or
+   reuses their existing one) and returns a Stripe-hosted onboarding URL
+   (`accountLinks.create`). The resulting account id is stored on
+   `users/{uid}.stripeConnectedAccountId`, and
+   `users/{uid}.stripeOnboardingComplete` is only ever set `true` by the
+   webhook once Stripe confirms the account can actually accept charges
+   and payouts — never by the client. See `src/app/(authenticated)/driver/payouts/page.tsx`.
+2. **Ride matching eligibility** — a driver only sees and can accept
+   open `REQUESTED` rides once `stripeOnboardingComplete` is `true` (see
+   `firestore.rules`) — you can't be matched with a ride you have no way
+   to get paid for. See `src/app/(authenticated)/driver/page.tsx`.
+3. **Rider payment** (`POST /api/stripe/payment/create-intent`) — once a
+   ride reaches `COMPLETED`, creates a Stripe PaymentIntent with
+   `application_fee_amount` (the platform's cut) and
+   `transfer_data.destination` set to the driver's connected account, so
+   Stripe splits and transfers the money automatically. The platform fee
+   percentage is one named constant, easy to change:
+   `PLATFORM_FEE_PERCENT` in `src/lib/stripe/server.ts` (currently 15%).
+4. **Webhook** (`POST /api/stripe/webhook`) — the only path that ever
+   moves a ride to `PAID` or flips `stripeOnboardingComplete` to `true`,
+   driven entirely by Stripe's own signed events
+   (`payment_intent.succeeded`, `payment_intent.payment_failed`,
+   `charge.refunded`, `account.updated`).
+
+All of this is gated behind [the pre-launch flag](#pre-launch-gate) — see
+that section before turning it on anywhere real. What's **not** built
+yet: a card-collection UI (Stripe Elements) on the rider side to actually
+confirm a PaymentIntent, and real distance-based fare pricing (today's
+fare is a flat placeholder — see `src/lib/fare.ts`).
+
 ## Tech Stack
 
 - Frontend Framework: Next.js 15 (App Router)
@@ -68,8 +162,13 @@ See `.env.example` for the full list of variables, and
 - Styling: Tailwind CSS + shadcn/ui-style components
 - Authentication: Firebase Auth (email/password, Google) — real ID.me
   integration is planned but not yet built (see [Status](#status))
-- Database: Firebase Firestore (rules deployed as code; live ride data is
-  still mock/client-side — see [Status](#status))
+- Database: Firebase Firestore (rules committed as code but not yet
+  deployed to a live project — see [Status](#status)); ride/user writes
+  that must be trusted server-side go through the Firebase Admin SDK
+  (`src/lib/firebase/admin.ts`)
+- Payments: Stripe Connect (Express accounts, destination charges) — see
+  [Payments (Stripe Connect)](#payments-stripe-connect); gated behind
+  [the pre-launch flag](#pre-launch-gate)
 - Package manager: Yarn (this repo pins `packageManager: "yarn@1.22.22"` —
   use Yarn, not npm, so `yarn.lock` stays the single source of truth)
 
@@ -134,8 +233,9 @@ military-rideshare/
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/            # login / register pages
-│   │   ├── (authenticated)/   # dashboard (behind RequireAuth)
+│   │   ├── (authenticated)/   # dashboard, driver dashboard + payouts (behind RequireAuth)
 │   │   ├── (marketing)/       # public marketing pages (e.g. join)
+│   │   ├── api/stripe/        # Stripe Connect onboarding, payment, webhook routes
 │   │   ├── profile/           # user profile page
 │   │   ├── rideapp/           # main ride-request flow (behind RequireAuth)
 │   │   └── layout.tsx
@@ -146,7 +246,13 @@ military-rideshare/
 │   ├── contexts/               # React context providers (e.g. Snackbar)
 │   ├── hooks/                  # shared hooks (e.g. useAuth)
 │   ├── lib/
-│   │   └── firebase/           # Firebase app/auth/firestore/storage config
+│   │   ├── api/                 # server-side request auth (Firebase ID token verification)
+│   │   ├── firebase/            # client SDK config + admin SDK (server) + rides/waitlist writes
+│   │   ├── stripe/               # server-side Stripe client + platform fee constant
+│   │   ├── fare.ts               # placeholder flat-fare estimator
+│   │   └── launch.ts             # NEXT_PUBLIC_PLATFORM_LAUNCHED gate (see Pre-Launch Gate)
+│   ├── types/
+│   │   └── ride.ts               # Ride/RideStatus/RidePayment shapes
 │   └── utils/
 │       └── helpers/             # auth helpers, error handling, etc.
 ├── public/                     # static files
@@ -156,22 +262,25 @@ military-rideshare/
 └── package.json
 ```
 
-There is no `src/app/api/` directory yet — all authentication currently
-goes straight from the client to the Firebase client SDK. Backend API
-routes for auth/rides/verification are part of the longer-term plan, not
-something already running.
+Authentication still goes straight from the client to the Firebase client
+SDK — there's no backend auth route. `src/app/api/` does now exist for
+the Stripe Connect payment routes (`src/app/api/stripe/**`), which need a
+trusted server to hold the Stripe secret key and verify Firebase ID
+tokens; see [Payments (Stripe Connect)](#payments-stripe-connect).
 
 ## Database Schema
 
-These interfaces describe the **target** Firestore schema this app is
-being built toward. `users/{uid}` documents are already read/written by
-the real auth flow (`src/lib/firebase/config.ts`, `firestore.rules`); the
-`Ride`/`Verification` shapes below are not yet written to Firestore
-anywhere in the app — ride data today lives only in the mock, in-memory
-state inside `MilitaryRideShareApp.tsx`.
+`users/{uid}` documents are read/written by the real auth flow
+(`src/lib/firebase/config.ts`, `firestore.rules`). `rides/{rideId}`
+documents are **real** too now — written and read through
+`src/lib/firebase/rides.ts`, not mock data — see `src/types/ride.ts` for
+the authoritative shape. `Verification` below is still planned, pending
+the real ID.me integration.
 
 ```typescript
-// Users
+// Users (src/types — the driver-payout fields are only ever written by
+// the Stripe Connect webhook / onboarding route, never by the client —
+// see firestore.rules and Payments (Stripe Connect) above)
 interface User {
   id: string;
   email: string;
@@ -180,24 +289,49 @@ interface User {
   verificationStatus: 'pending' | 'verified' | 'expired';
   currentBase: string;
   profileComplete: boolean;
+  stripeConnectedAccountId?: string;   // server-written only
+  stripeOnboardingComplete?: boolean;  // server-written only
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 
-// Rides (planned — not yet written to Firestore; see note above)
+// Rides — real, live Firestore data (src/types/ride.ts). fare, payment,
+// and every field set at creation are immutable from the client after
+// create; only the Stripe webhook can move a ride to PAID or write
+// .payment — see firestore.rules for the exact rules.
 interface Ride {
   id: string;
   riderId: string;
-  driverId?: string;
-  pickup: GeoPoint;
-  dropoff: GeoPoint;
-  status: 'requested' | 'accepted' | 'inProgress' | 'completed';
-  fare: number;
-  scheduledTime: Timestamp;
-  completedTime?: Timestamp;
-  baseAccess: boolean;
+  driverId: string | null;
+  status: 'REQUESTED' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED' | 'PAID' | 'CANCELLED';
+  pickup: { address: string; lat?: number; lng?: number };
+  dropoff: { address: string; lat?: number; lng?: number };
+  fare: number;       // cents; flat placeholder today — see src/lib/fare.ts
+  currency: string;
+  requestedAt: Timestamp;
+  acceptedAt?: Timestamp;
+  startedAt?: Timestamp;
+  completedAt?: Timestamp;
+  cancelledAt?: Timestamp;
+  cancelledBy?: 'rider' | 'driver';
+  payment?: {
+    stripePaymentIntentId?: string;
+    status: 'pending' | 'processing' | 'succeeded' | 'failed' | 'refunded';
+    amount?: number;
+    platformFeeAmount?: number;
+    driverPayoutAmount?: number;
+    currency?: string;
+  };
+}
+
+// Waitlist — "notify me" signups collected while
+// NEXT_PUBLIC_PLATFORM_LAUNCHED is not "true" (src/lib/firebase/waitlist.ts).
+// Write-only from the client: create-only, never read/updated/deleted back.
+interface WaitlistEntry {
+  userId: string;
+  email: string;
+  note?: string;
   createdAt: Timestamp;
-  updatedAt: Timestamp;
 }
 
 // Verification (planned — depends on the real ID.me integration)
@@ -210,10 +344,11 @@ interface Verification {
 }
 ```
 
-`firestore.rules` already locks the `rides/{rideId}` collection down to the
-rider/driver named on each document, ahead of any code actually writing to
-it, so access control doesn't default open the moment that write path
-ships.
+`firestore.rules` locks the `rides/{rideId}`, `users/{userId}`, and
+`waitlist/{docId}` collections down to exactly who should be able to
+touch each field — see that file's header comment for the full model,
+including which fields are never trusted from the client no matter who's
+asking.
 
 ## Security Features
 
@@ -230,6 +365,14 @@ ships.
   to every route in `next.config.ts`
 - A demo-gated, clearly-labeled mock verification flow instead of a fake
   "verified" badge with no backing (see [Military Verification](#military-verification))
+- A hard, fail-closed pre-launch gate (`NEXT_PUBLIC_PLATFORM_LAUNCHED`)
+  keeping the real ride-booking/payment code from being reachable by real
+  users until Base Link is actually licensed — see
+  [Pre-Launch Gate](#pre-launch-gate)
+- Server-verified Stripe operations: every Stripe API route re-checks the
+  caller's Firebase ID token and the ride's actual state server-side
+  (Admin SDK) rather than trusting anything the client sends — see
+  [Payments (Stripe Connect)](#payments-stripe-connect)
 
 **Planned:**
 - Real ID.me integration for military status verification, with periodic
@@ -276,7 +419,12 @@ The application can be deployed on Vercel:
 1. Push your code to GitHub
 2. Connect your repository to Vercel
 3. Configure environment variables (see `.env.example`) — leave
-   `NEXT_PUBLIC_DEMO_MODE` unset/`false` for any real deployment
+   `NEXT_PUBLIC_DEMO_MODE` **and** `NEXT_PUBLIC_PLATFORM_LAUNCHED`
+   unset/`false` for any real deployment until the real ID.me integration
+   and the TNC license/insurance (respectively) are actually in place —
+   see [Pre-Launch Gate](#pre-launch-gate). `NEXT_PUBLIC_` variables are
+   inlined at build time, not read at runtime, so changing either later
+   requires a new build/deploy, not just an env var change.
 4. Set up build settings:
 ```bash
 Build Command: yarn build
@@ -302,8 +450,12 @@ yet deployed anywhere.
 - No sensitive data (real credentials, PII, `.env.local`) in commits
 - Never remove the `NEXT_PUBLIC_DEMO_MODE` gate around the mock
   verification flow, or ship it enabled by default
-- Flag anything touching auth, Firestore/Storage rules, or PII handling
-  for extra review
+- **Never set `NEXT_PUBLIC_PLATFORM_LAUNCHED=true` in a real deployment
+  without confirming Base Link is actually licensed (TNC license +
+  insurance) in that state** — see [Pre-Launch Gate](#pre-launch-gate).
+  This is a legal precondition, not a style preference.
+- Flag anything touching auth, Firestore/Storage rules, Stripe, or PII
+  handling for extra review
 
 ## License
 

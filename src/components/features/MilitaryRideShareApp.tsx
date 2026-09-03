@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
     Shield,
     MapPin,
@@ -9,20 +9,35 @@ import {
     LogOut,
     Clock,
     ChevronRight,
+    Rocket,
+    CheckCircle2,
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import Image from 'next/image'
 import {UserAvatar} from '../ui/UserAvatar'
 import { SargeRecommendations } from './Sarge/SargeReccomendations'
 import { redirect } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import { isPlatformLaunched, PLATFORM_NOT_LAUNCHED_MESSAGE } from '@/lib/launch'
+import { createRideRequest, subscribeToRide } from '@/lib/firebase/rides'
+import { joinWaitlist } from '@/lib/firebase/waitlist'
+import { estimateFareCents } from '@/lib/fare'
+import type { Ride } from '@/types/ride'
 
 const MilitaryRideShareApp = () => {
-    const [activeView, setActiveView] = useState('main') // main, ride, profile
+    const { user } = useAuth()
+    const [activeView, setActiveView] = useState('main') // main, ride, waitlist, profile
     const [menuOpen, setMenuOpen] = useState(false)
     const [idMeVerified, setIdMeVerified] = useState(false)
     const [pickup, setPickup] = useState('')
     const [dropoff, setDropoff] = useState('')
     const [step, setStep] = useState(1) // 1: location, 2: confirmation, 3: searching
+    const [ride, setRide] = useState<Ride | null>(null)
+    const [rideError, setRideError] = useState<string | null>(null)
+    const [waitlistEmail, setWaitlistEmail] = useState('')
+    const [waitlistNote, setWaitlistNote] = useState('')
+    const [waitlistSubmitted, setWaitlistSubmitted] = useState(false)
+    const [waitlistError, setWaitlistError] = useState<string | null>(null)
 
     // There is no real ID.me OAuth integration wired up yet — no client
     // secret, no server-side token exchange, no verified-status check.
@@ -32,6 +47,23 @@ const MilitaryRideShareApp = () => {
     // than silently handing out a real-looking "✓ Verified" badge that
     // isn't backed by anything — see MilitaryRideShareApp docs / audit notes.
     const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
+    // Pre-launch gate — see src/lib/launch.ts. Most US states require a TNC
+    // license (plus insurance) before ride-matching-for-pay can go live to
+    // real, paying users; that isn't in place yet, so the real booking/
+    // payment code below (createRideRequest, Stripe Connect) is fully built
+    // and reachable in a dev/test environment, but stays off by default and
+    // in production until NEXT_PUBLIC_PLATFORM_LAUNCHED is explicitly set to
+    // "true". Same pattern as isDemoMode above: a real feature exists, and a
+    // narrowly-checked env var — not a guess, not a missing-value default —
+    // decides whether the public UI is allowed to reach it.
+    const platformLaunched = isPlatformLaunched()
+
+    useEffect(() => {
+        if (!ride?.id) return
+        const unsubscribe = subscribeToRide(ride.id, (updated) => setRide(updated))
+        return unsubscribe
+    }, [ride?.id])
 
     const mockIdMeStatus = {
         verified: false,
@@ -64,18 +96,77 @@ const MilitaryRideShareApp = () => {
         setIdMeVerified(true)
     }
 
-    const handleRideRequest = () => {
+    const handleRideRequest = async () => {
         if (step === 1 && pickup && dropoff) {
             setStep(2)
         } else if (step === 2) {
+            setRideError(null)
+
+            if (!platformLaunched) {
+                // Defense in depth: createRideRequest() itself refuses to
+                // write to Firestore while the platform isn't launched (see
+                // src/lib/firebase/rides.ts), so this can't actually create
+                // a chargeable ride even if this branch were somehow
+                // reached. The UI shouldn't let a user get here at all —
+                // see the pre-launch banner/waitlist routing below — but
+                // this stays as a second, honest backstop rather than
+                // silently doing nothing.
+                setRideError(PLATFORM_NOT_LAUNCHED_MESSAGE)
+                return
+            }
+
+            if (!user) {
+                setRideError('You must be signed in to request a ride.')
+                return
+            }
+
             setStep(3)
-            // Mock ride search
-            setTimeout(() => {
-                setStep(1)
-                setPickup('')
-                setDropoff('')
-                setActiveView('main')
-            }, 3000)
+            try {
+                const rideId = await createRideRequest({
+                    riderId: user.uid,
+                    pickup: { address: pickup },
+                    dropoff: { address: dropoff },
+                    fare: estimateFareCents({ address: pickup }, { address: dropoff }),
+                })
+                setRide({ id: rideId } as Ride) // full doc arrives via subscribeToRide
+            } catch (error) {
+                setRideError(
+                    error instanceof Error
+                        ? error.message
+                        : 'Something went wrong requesting your ride.'
+                )
+                setStep(2)
+            }
+        }
+    }
+
+    const resetRideFlow = () => {
+        setStep(1)
+        setPickup('')
+        setDropoff('')
+        setRide(null)
+        setRideError(null)
+        setActiveView('main')
+    }
+
+    const handleWaitlistSubmit = async (event: React.FormEvent) => {
+        event.preventDefault()
+        setWaitlistError(null)
+        if (!user) {
+            setWaitlistError('You must be signed in to join the waitlist.')
+            return
+        }
+        try {
+            await joinWaitlist({
+                userId: user.uid,
+                email: waitlistEmail || user.email || '',
+                note: waitlistNote,
+            })
+            setWaitlistSubmitted(true)
+        } catch (error) {
+            setWaitlistError(
+                error instanceof Error ? error.message : 'Could not join the waitlist.'
+            )
         }
     }
 
@@ -222,6 +313,29 @@ const MilitaryRideShareApp = () => {
                                 No real ID.me check was performed.
                             </div>
                         )}
+                        {!platformLaunched && (
+                            <div
+                                role="status"
+                                className="flex items-start gap-3 px-4 py-3 rounded-md bg-amber-50 text-amber-900 border border-amber-400"
+                            >
+                                <Rocket className="h-5 w-5 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="font-semibold">
+                                        Pre-launch testing
+                                    </p>
+                                    <p className="text-sm">
+                                        {PLATFORM_NOT_LAUNCHED_MESSAGE} Base
+                                        Link is not yet licensed to operate as
+                                        a paid rideshare in any state, so no
+                                        real ride can be booked and no card
+                                        will ever be charged here. Request a
+                                        ride below to join the waitlist and
+                                        we&apos;ll email you the moment that
+                                        changes.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                         {/* Map Placeholder */}
 
                         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">
@@ -247,9 +361,18 @@ const MilitaryRideShareApp = () => {
                             <button
                                 style={{ backgroundColor: '#2E5C8A' }}
                                 className="w-full py-3 text-white rounded-lg hover:opacity-90"
-                                onClick={() => setActiveView('ride')}
+                                onClick={() =>
+                                    setActiveView(platformLaunched ? 'ride' : 'waitlist')
+                                }
+                                title={
+                                    platformLaunched
+                                        ? undefined
+                                        : 'Real rides are not yet available — join the waitlist instead'
+                                }
                             >
-                                Request a Ride
+                                {platformLaunched
+                                    ? 'Request a Ride'
+                                    : 'Join the Waitlist'}
                             </button>
                             <div
                                 style={{
@@ -310,7 +433,89 @@ const MilitaryRideShareApp = () => {
                             </div>
                         </div>
                     </div>
-                ) : activeView === 'ride' ? (
+                ) : activeView === 'waitlist' ? (
+                    <div className="max-w-md mx-auto space-y-6">
+                        <div className="flex items-start gap-3 px-4 py-3 rounded-md bg-amber-50 text-amber-900 border border-amber-400">
+                            <Rocket className="h-5 w-5 mt-0.5 shrink-0" />
+                            <p className="text-sm">{PLATFORM_NOT_LAUNCHED_MESSAGE}</p>
+                        </div>
+                        <h1 className="text-2xl font-bold tracking-tight text-gray-900 text-center">
+                            Join the Waitlist
+                        </h1>
+                        {waitlistSubmitted ? (
+                            <Alert>
+                                <AlertTitle className="flex items-center gap-2">
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    You&apos;re on the list
+                                </AlertTitle>
+                                <AlertDescription>
+                                    We&apos;ll email you the moment Base Link
+                                    can offer real, paid rides in your state.
+                                    <button
+                                        onClick={() => setActiveView('main')}
+                                        className="mt-4 block w-full py-2 border rounded-lg hover:bg-gray-100"
+                                    >
+                                        Back to Home
+                                    </button>
+                                </AlertDescription>
+                            </Alert>
+                        ) : (
+                            <form onSubmit={handleWaitlistSubmit} className="space-y-4">
+                                {waitlistError && (
+                                    <Alert variant="destructive">
+                                        <AlertDescription>{waitlistError}</AlertDescription>
+                                    </Alert>
+                                )}
+                                <div>
+                                    <label
+                                        htmlFor="waitlist-email"
+                                        className="block text-sm text-gray-600 mb-1"
+                                    >
+                                        Email
+                                    </label>
+                                    <input
+                                        id="waitlist-email"
+                                        type="email"
+                                        required
+                                        value={waitlistEmail || user?.email || ''}
+                                        onChange={(e) => setWaitlistEmail(e.target.value)}
+                                        placeholder="you@example.com"
+                                        className="w-full p-3 border rounded-lg"
+                                    />
+                                </div>
+                                <div>
+                                    <label
+                                        htmlFor="waitlist-note"
+                                        className="block text-sm text-gray-600 mb-1"
+                                    >
+                                        Where are you stationed? (optional)
+                                    </label>
+                                    <input
+                                        id="waitlist-note"
+                                        type="text"
+                                        value={waitlistNote}
+                                        onChange={(e) => setWaitlistNote(e.target.value)}
+                                        placeholder="e.g. Fort Liberty, NC"
+                                        className="w-full p-3 border rounded-lg"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+                                >
+                                    Notify Me at Launch
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveView('main')}
+                                    className="w-full py-2 text-sm text-gray-500 hover:text-gray-700"
+                                >
+                                    Cancel
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                ) : activeView === 'ride' && platformLaunched ? (
                     <div className="space-y-6">
                         {/* //TODO: (ET) Get routes and directions from google maps api so that suggestions pop up based on their location */}
                         <h1 className="text-xl md:text-5xl font-bold tracking-tight text-gray-900 text-center">
@@ -398,6 +603,11 @@ const MilitaryRideShareApp = () => {
                                     </div>
                                 </div>
 
+                                {rideError && (
+                                    <Alert variant="destructive">
+                                        <AlertDescription>{rideError}</AlertDescription>
+                                    </Alert>
+                                )}
                                 <button
                                     onClick={handleRideRequest}
                                     className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
@@ -407,23 +617,160 @@ const MilitaryRideShareApp = () => {
                             </div>
                         ) : (
                             <div className="text-center py-12">
-                                <Alert>
-                                    <AlertTitle className="flex items-center justify-center gap-2">
-                                        <Clock className="h-4 w-4 animate-spin" />
-                                        Finding your ride...
-                                    </AlertTitle>
-                                    <AlertDescription>
-                                        We&apos;re matching you with a verified
-                                        military driver. This usually takes 1-3
-                                        minutes.
-                                    </AlertDescription>
-                                </Alert>
+                                {rideError ? (
+                                    <Alert variant="destructive">
+                                        <AlertTitle>Ride request failed</AlertTitle>
+                                        <AlertDescription>
+                                            {rideError}
+                                            <button
+                                                onClick={resetRideFlow}
+                                                className="mt-4 block w-full py-2 border rounded-lg hover:bg-gray-100"
+                                            >
+                                                Back to Home
+                                            </button>
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : ride?.status === 'CANCELLED' ? (
+                                    <Alert variant="destructive">
+                                        <AlertTitle>Ride cancelled</AlertTitle>
+                                        <AlertDescription>
+                                            This ride was cancelled.
+                                            <button
+                                                onClick={resetRideFlow}
+                                                className="mt-4 block w-full py-2 border rounded-lg hover:bg-gray-100"
+                                            >
+                                                Back to Home
+                                            </button>
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : !ride || ride.status === 'REQUESTED' ? (
+                                    <Alert>
+                                        <AlertTitle className="flex items-center justify-center gap-2">
+                                            <Clock className="h-4 w-4 animate-spin" />
+                                            Finding your ride...
+                                        </AlertTitle>
+                                        <AlertDescription>
+                                            We&apos;re matching you with a
+                                            verified military driver.
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : ride.status === 'ACCEPTED' || ride.status === 'IN_PROGRESS' ? (
+                                    <Alert>
+                                        <AlertTitle>
+                                            {ride.status === 'ACCEPTED'
+                                                ? 'A driver is on the way'
+                                                : 'Trip in progress'}
+                                        </AlertTitle>
+                                        <AlertDescription>
+                                            {pickup} → {dropoff}
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : ride.status === 'COMPLETED' ? (
+                                    <PayForRide ride={ride} onDone={resetRideFlow} />
+                                ) : ride.status === 'PAID' ? (
+                                    <Alert>
+                                        <AlertTitle className="flex items-center justify-center gap-2">
+                                            <CheckCircle2 className="h-4 w-4" />
+                                            Ride complete — paid
+                                        </AlertTitle>
+                                        <AlertDescription>
+                                            Thanks for riding with Base Link.
+                                            <button
+                                                onClick={resetRideFlow}
+                                                className="mt-4 block w-full py-2 border rounded-lg hover:bg-gray-100"
+                                            >
+                                                Back to Home
+                                            </button>
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : null}
                             </div>
                         )}
                     </div>
                         ) : null}
             </main>
         </div>
+    )
+}
+
+// Rider-side payment trigger for a COMPLETED ride. Calls the server-side
+// PaymentIntent route (src/app/api/stripe/payment/create-intent/route.ts),
+// which itself independently refuses to create a real charge unless
+// NEXT_PUBLIC_PLATFORM_LAUNCHED is "true" — this component can only ever be
+// reached from a ride that was created for real in the first place, which
+// already required that flag, but the server checks it again regardless.
+//
+// This creates the PaymentIntent (split via Stripe Connect's
+// application_fee_amount + transfer_data.destination) and surfaces its
+// client secret. Collecting real card details (Stripe Elements) is
+// deliberately out of scope here — see the PR description — so this stops
+// short of an actual charge; wiring up Stripe Elements is the next step
+// before this can take a real card.
+function PayForRide({ ride, onDone }: { ride: Ride; onDone: () => void }) {
+    const { user } = useAuth()
+    const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+    const [error, setError] = useState<string | null>(null)
+
+    const handlePay = async () => {
+        if (!user) return
+        setStatus('loading')
+        setError(null)
+        try {
+            const idToken = await user.getIdToken()
+            const response = await fetch('/api/stripe/payment/create-intent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${idToken}`,
+                },
+                body: JSON.stringify({ rideId: ride.id }),
+            })
+            const data = await response.json()
+            if (!response.ok) {
+                throw new Error(data.error || 'Could not start payment')
+            }
+            setStatus('ready')
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Could not start payment')
+            setStatus('error')
+        }
+    }
+
+    if (status === 'ready') {
+        return (
+            <Alert>
+                <AlertTitle className="flex items-center justify-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Payment started
+                </AlertTitle>
+                <AlertDescription>
+                    Your card charge is processing — this ride will show as
+                    Paid once Stripe confirms it.
+                    <button
+                        onClick={onDone}
+                        className="mt-4 block w-full py-2 border rounded-lg hover:bg-gray-100"
+                    >
+                        Back to Home
+                    </button>
+                </AlertDescription>
+            </Alert>
+        )
+    }
+
+    return (
+        <Alert>
+            <AlertTitle>Trip complete</AlertTitle>
+            <AlertDescription>
+                {error && <p className="text-red-600 mb-2">{error}</p>}
+                <button
+                    onClick={handlePay}
+                    disabled={status === 'loading'}
+                    className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:bg-gray-300"
+                >
+                    {status === 'loading' ? 'Starting payment…' : 'Pay Now'}
+                </button>
+            </AlertDescription>
+        </Alert>
     )
 }
 
