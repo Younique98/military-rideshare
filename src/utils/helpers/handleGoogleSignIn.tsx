@@ -6,8 +6,8 @@ export const handleGoogleSignIn = async (
 ) => {
     const provider = new GoogleAuthProvider()
     try {
-        const result = await signInWithPopup(auth, provider)
-        console.log('✅ Google Sign-In Success:', result.user)
+        await signInWithPopup(auth, provider)
+        console.log('✅ Google Sign-In Success')
         onSuccessRedirect('/rideapp')
     } catch (error) {
         //TODO: (ET) handle error

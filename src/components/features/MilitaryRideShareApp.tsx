@@ -24,9 +24,20 @@ const MilitaryRideShareApp = () => {
     const [dropoff, setDropoff] = useState('')
     const [step, setStep] = useState(1) // 1: location, 2: confirmation, 3: searching
 
+    // There is no real ID.me OAuth integration wired up yet — no client
+    // secret, no server-side token exchange, no verified-status check.
+    // `NEXT_PUBLIC_DEMO_MODE` gates a fake, clearly-labeled "simulate
+    // verification" button that's useful for portfolio/demo purposes. It is
+    // NOT set in production, so by default this flow is disabled rather
+    // than silently handing out a real-looking "✓ Verified" badge that
+    // isn't backed by anything — see MilitaryRideShareApp docs / audit notes.
+    const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
     const mockIdMeStatus = {
         verified: false,
-        message: 'Please verify your military status with ID.me to continue',
+        message: isDemoMode
+            ? 'Demo mode: click below to simulate ID.me verification. This does not perform a real identity check.'
+            : 'ID.me verification is not yet connected. Real-time military status checks are not available in this build, so ride requests are disabled until this is wired up.',
     }
 
     const popularLocations = [
@@ -46,7 +57,10 @@ const MilitaryRideShareApp = () => {
 
 
     const handleIdMeVerification = () => {
-        // Mock ID.me verification process
+        // Demo-only mock of the ID.me verification process — gated behind
+        // NEXT_PUBLIC_DEMO_MODE. There is no real OAuth exchange or
+        // server-side check here, so this must never run outside demo mode.
+        if (!isDemoMode) return
         setIdMeVerified(true)
     }
 
@@ -172,18 +186,42 @@ const MilitaryRideShareApp = () => {
                                 Military Verification Required
                             </AlertTitle>
                             <AlertDescription>
-                                {mockIdMeStatus.message}
+                                {isDemoMode && (
+                                    <span className="inline-block mb-2 px-2 py-1 rounded bg-yellow-100 text-yellow-800 border border-yellow-400 text-xs font-bold uppercase tracking-wide">
+                                        Demo — not a real verification
+                                    </span>
+                                )}
+                                <p>{mockIdMeStatus.message}</p>
                                 <button
                                     onClick={handleIdMeVerification}
-                                    className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500"
+                                    disabled={!isDemoMode}
+                                    aria-disabled={!isDemoMode}
+                                    title={
+                                        isDemoMode
+                                            ? undefined
+                                            : 'Real ID.me verification is not yet integrated'
+                                    }
+                                    className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300"
                                 >
-                                    Verify with ID.me
+                                    {isDemoMode
+                                        ? 'Simulate ID.me Verification (Demo)'
+                                        : 'Verify with ID.me (Not Connected)'}
                                 </button>
                             </AlertDescription>
                         </Alert>
                     </div>
                 ) : activeView === 'main' ? (
                     <div className="space-y-8">
+                        {isDemoMode && (
+                            <div
+                                role="status"
+                                className="flex items-center gap-2 px-3 py-2 rounded-md bg-yellow-100 text-yellow-800 border border-yellow-400 text-sm font-semibold"
+                            >
+                                <Shield className="h-4 w-4" />
+                                DEMO — this account is only mock-verified.
+                                No real ID.me check was performed.
+                            </div>
+                        )}
                         {/* Map Placeholder */}
 
                         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">
