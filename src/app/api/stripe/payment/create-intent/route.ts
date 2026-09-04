@@ -16,6 +16,16 @@ import { isPlatformLaunched, PLATFORM_NOT_LAUNCHED_MESSAGE } from '@/lib/launch'
 // on the one PaymentIntent, so Stripe splits and transfers the money
 // automatically — this route never moves money itself.
 //
+// The `clientSecret` this returns is what the rider-facing Payment Element
+// (src/components/features/payment/RidePaymentForm.tsx) mounts against to
+// actually collect and confirm a card — this route creates the charge
+// server-side, the Payment Element is what lets the rider enter and submit
+// a real payment method against it. Idempotent by ride: a ride with a
+// still-confirmable PaymentIntent (not yet succeeded/canceled) gets that
+// same PaymentIntent's client secret back instead of a new one, so mounting
+// the Payment Element more than once (a remount, or retrying after a
+// decline) doesn't fork off duplicate PaymentIntents for the same ride.
+//
 // GATE: this refuses to create a real PaymentIntent unless
 // NEXT_PUBLIC_PLATFORM_LAUNCHED is exactly "true" (fails closed — see
 // src/lib/launch.ts). The UI already keeps riders from reaching a COMPLETED
@@ -98,6 +108,23 @@ export async function POST(request: NextRequest) {
     const currency = (ride.currency as string | undefined) ?? 'usd'
 
     const stripe = getStripeClient()
+
+    // Reuse an existing, still-confirmable PaymentIntent for this ride
+    // rather than creating a new one on every call — see the route comment
+    // above. A PaymentIntent left in requires_payment_method (e.g. after a
+    // declined card) can simply be confirmed again with a different payment
+    // method; there's no need to abandon it.
+    const existingIntentId = ride.payment?.stripePaymentIntentId as string | undefined
+    if (existingIntentId) {
+        const existingIntent = await stripe.paymentIntents.retrieve(existingIntentId)
+        if (existingIntent.status !== 'succeeded' && existingIntent.status !== 'canceled') {
+            return NextResponse.json({
+                clientSecret: existingIntent.client_secret,
+                paymentIntentId: existingIntent.id,
+            })
+        }
+    }
+
     const paymentIntent = await stripe.paymentIntents.create({
         amount: fareAmount,
         currency,
