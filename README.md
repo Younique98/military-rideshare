@@ -390,12 +390,66 @@ yarn dev      # start the dev server
 yarn build    # production build
 yarn start    # run a production build
 yarn lint     # run ESLint
+yarn test:e2e # Playwright + axe-core e2e/accessibility suite — see below
 ```
 
-There is no dedicated `security-check` script or test suite yet — treat
-`yarn lint`, `yarn build`, and `yarn audit` as the current baseline checks
-for a PR, and add real tests as the app grows past its current mock-data
-stage.
+Treat `yarn lint`, `yarn build`, `yarn test:e2e`, and `yarn audit` as the
+baseline checks for a PR. `firestore-tests/` (a separate, standalone
+package — see its own README) covers `firestore.rules` directly against a
+Firestore emulator.
+
+### End-to-end / accessibility tests (`e2e/`)
+
+A real Playwright suite — no mocked DOM, no fake component tree — that
+drives an actual `next dev` server against a real local Firebase Auth +
+Firestore emulator pair, and runs [axe-core](https://github.com/dequelabs/axe-core)
+against real rendered pages. Two Playwright *projects* cover the two states
+`NEXT_PUBLIC_PLATFORM_LAUNCHED` puts the app in:
+
+- **`prelaunch`** (the flag unset/false — today's actual default
+  production state): the logged-out `/login` page, the signed-in pre-launch
+  banner + waitlist flow, and the driver dashboard's pre-launch banner —
+  and a real UI-level check that there is no reachable path to a real
+  ride-request form while the platform isn't launched.
+- **`launched`** (the flag set to `"true"` in this test environment only):
+  a full real lifecycle across two independently-authenticated browser
+  sessions — a rider requests a ride, a driver Accepts / Starts / Completes
+  it (the exact `acceptRide()`/`startRide()`/`completeRide()` calls Fix 1
+  independently gates), and the rider reaches the payment step.
+
+Stripe is mocked in-page (`e2e/support/stripeMock.ts` — a fake
+`window.Stripe` installed before `@stripe/stripe-js` ever loads, plus a
+routed fixture response for `/api/stripe/payment/create-intent`) so this
+never talks to real Stripe or needs real API keys, per the "don't hit live
+payment infra in CI" rule.
+
+Screenshots land in the committed `screenshots/` directory at every key
+checkpoint (landing, pre-launch banner, ride-request form, driver
+dashboard, payment UI states).
+
+**Running it:**
+```bash
+yarn test:e2e              # runs both projects; starts the emulator + two
+                            # next dev servers itself (see playwright.config.ts)
+yarn test:e2e:report       # opens the last run's HTML report
+```
+Requires Java (the Firestore emulator) and, once, `npx playwright install
+--with-deps chromium` to fetch a browser binary (not needed if
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE` already points at one — see
+`playwright.config.ts`).
+
+### Verifying a firebase-admin version bump
+
+`scripts/verify-firebase-admin-migration.ts` is a standalone check for
+exactly the risk a firebase-admin major-version bump carries on this
+repo: that Auth token verification and Firestore Admin writes (the code
+every Stripe route's auth check depends on — see `src/lib/api/auth.ts` /
+`src/lib/firebase/admin.ts`) still work. It runs those real code paths
+against a real Auth + Firestore emulator — not a mock of firebase-admin.
+```bash
+yarn emulators &            # start the emulator pair
+yarn verify:firebase-admin  # exercises verifyIdToken() + Firestore reads/writes
+```
 
 To create a new feature:
 ```bash

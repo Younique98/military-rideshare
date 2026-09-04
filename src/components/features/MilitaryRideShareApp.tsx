@@ -392,12 +392,12 @@ const MilitaryRideShareApp = () => {
                                         </span>
                                     </div>
                                     <div>
-                                        <h3
+                                        <h2
                                             style={{ color: '#2E5C8A' }}
                                             className="font-semibold"
                                         >
                                             Military Verified
-                                        </h3>
+                                        </h2>
                                         <p className="text-brand-sage">
                                             All drivers are ID.me verified
                                         </p>
@@ -408,9 +408,9 @@ const MilitaryRideShareApp = () => {
 
                         {/* Popular Locations */}
                         <div>
-                            <h3 className="text-lg font-semibold mb-4">
+                            <h2 className="text-lg font-semibold mb-4">
                                 Popular Locations
-                            </h3>
+                            </h2>
                             <div className="space-y-2">
                                 {popularLocations.map((location, index) => (
                                     <div
@@ -567,9 +567,9 @@ const MilitaryRideShareApp = () => {
                         ) : step === 2 ? (
                             <div className="space-y-6">
                                 <div className="bg-white p-6 rounded-lg shadow">
-                                    <h3 className="text-lg font-semibold mb-4">
+                                    <h2 className="text-lg font-semibold mb-4">
                                         Ride Details
-                                    </h3>
+                                    </h2>
                                     <div className="space-y-4">
                                         <div className="flex items-center gap-2">
                                             <MapPin className="h-4 w-4 text-blue-600" />

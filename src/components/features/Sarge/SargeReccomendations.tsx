@@ -52,7 +52,7 @@ export const SargeRecommendations = () => {
                     <AvatarFallback>S</AvatarFallback>
                 </Avatar>
                 <div>
-                    <h3 className="text-lg font-bold">Sarge Recommends</h3>
+                    <h2 className="text-lg font-bold">Sarge Recommends</h2>
                     <p className="text-sm text-gray-500">
                         Based on your travel history and ratings.
                     </p>
@@ -84,9 +84,9 @@ export const SargeRecommendations = () => {
                                 className="w-full h-32 object-cover rounded-t"
                             />
                             <CardContent className="p-4">
-                                <h4 className="font-semibold text-md">
+                                <h3 className="font-semibold text-md">
                                     {rec.name}
-                                </h4>
+                                </h3>
                                 <p className="text-sm text-gray-500 mb-2">
                                     {rec.description}
                                 </p>

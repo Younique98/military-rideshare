@@ -98,11 +98,25 @@ service cloud.firestore {
       // Visible to: the rider who requested it, the driver assigned to it
       // once matched, and — only while still REQUESTED and driverless — any
       // onboarded driver browsing the open-ride queue.
+      //
+      // Every field read below uses .get(field, default) rather than direct
+      // dot access (resource.data.riderId). This isn't defensive styling —
+      // it's required: for a *list* request (a query, like the driver's
+      // open-ride queue subscription — not a single-document get()),
+      // Firestore's rule evaluator checks whether this OR condition can
+      // hold without necessarily having concrete per-document data bound
+      // for every branch, and direct dot access throws "Property riderId
+      // is undefined on object" in that mode — confirmed against a real
+      // Firestore emulator running exactly the driver's query in
+      // src/lib/firebase/rides.ts's subscribeToRequestedRides(). Every
+      // field here always exists on a real ride document, so the defaults
+      // below never change what's actually allowed, only how the
+      // condition is safely evaluated at list time.
       allow read: if request.auth != null
-                   && (resource.data.riderId == request.auth.uid
-                       || resource.data.driverId == request.auth.uid
-                       || (resource.data.status == 'REQUESTED'
-                           && resource.data.driverId == null
+                   && (resource.data.get('riderId', null) == request.auth.uid
+                       || resource.data.get('driverId', null) == request.auth.uid
+                       || (resource.data.get('status', null) == 'REQUESTED'
+                           && resource.data.get('driverId', null) == null
                            && isOnboardedDriver(request.auth.uid)));
 
       // A rider may only ever create a ride as themselves, in the

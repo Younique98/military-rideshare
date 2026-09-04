@@ -100,8 +100,20 @@ export function subscribeToDriverActiveRide(
     })
 }
 
-/** Driver accepts a still-unclaimed REQUESTED ride. */
+/**
+ * Driver accepts a still-unclaimed REQUESTED ride.
+ *
+ * Fails closed independently of createRideRequest(): even though no ride can
+ * exist pre-launch today (createRideRequest() already refuses to write one),
+ * this checks isPlatformLaunched() itself so the guarantee holds on its own
+ * merits rather than as a side effect of a different function's behavior —
+ * see src/lib/launch.ts.
+ */
 export async function acceptRide(rideId: string, driverUid: string): Promise<void> {
+    if (!isPlatformLaunched()) {
+        throw new PlatformNotLaunchedError()
+    }
+
     await updateDoc(doc(db, 'rides', rideId), {
         status: 'ACCEPTED',
         driverId: driverUid,
@@ -109,8 +121,18 @@ export async function acceptRide(rideId: string, driverUid: string): Promise<voi
     })
 }
 
-/** Assigned driver starts the trip. */
+/**
+ * Assigned driver starts the trip.
+ *
+ * Independently gated — see acceptRide() above for why this checks
+ * isPlatformLaunched() itself instead of relying on ride creation being
+ * gated.
+ */
 export async function startRide(rideId: string): Promise<void> {
+    if (!isPlatformLaunched()) {
+        throw new PlatformNotLaunchedError()
+    }
+
     await updateDoc(doc(db, 'rides', rideId), {
         status: 'IN_PROGRESS',
         startedAt: serverTimestamp(),
@@ -123,8 +145,16 @@ export async function startRide(rideId: string): Promise<void> {
  * Stripe payment step (POST /api/stripe/payment/create-intent). Moving the
  * ride to PAID happens only via the Stripe webhook, after the charge
  * actually succeeds.
+ *
+ * Independently gated — see acceptRide() above for why this checks
+ * isPlatformLaunched() itself instead of relying on ride creation being
+ * gated.
  */
 export async function completeRide(rideId: string): Promise<void> {
+    if (!isPlatformLaunched()) {
+        throw new PlatformNotLaunchedError()
+    }
+
     await updateDoc(doc(db, 'rides', rideId), {
         status: 'COMPLETED',
         completedAt: serverTimestamp(),

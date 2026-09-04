@@ -32,11 +32,20 @@ const Alert = React.forwardRef<
 ))
 Alert.displayName = 'Alert'
 
+// Deliberately not a heading element (<h1>-<h6>): AlertTitle is a status
+// message title inside a role="alert" region, not a section of the page's
+// document outline, and Alert gets used at arbitrary nesting depths next
+// to a real page heading (e.g. an <h1> immediately followed by an Alert —
+// see MilitaryRideShareApp.tsx's pre-launch banner). A heading element here
+// produced real axe "heading-order" violations (heading levels jumping
+// straight to h5) with no single correct level to hardcode instead;
+// role="alert" on the parent already gets this announced to screen readers
+// without needing heading semantics.
 const AlertTitle = React.forwardRef<
     HTMLParagraphElement,
     React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
-    <h5
+    <div
         ref={ref}
         className={cn(
             'mb-1 font-medium leading-none tracking-tight',
