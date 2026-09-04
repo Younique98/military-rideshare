@@ -28,12 +28,12 @@ export default function robots(): MetadataRoute.Robots {
             {
                 userAgent: '*',
                 allow: '/',
-                disallow: ['/dashboard', '/profile', '/rideapp', '/api/'],
+                disallow: ['/dashboard', '/driver', '/profile', '/rideapp', '/api/'],
             },
             {
                 userAgent: AI_CRAWLERS,
                 allow: '/',
-                disallow: ['/dashboard', '/profile', '/rideapp', '/api/'],
+                disallow: ['/dashboard', '/driver', '/profile', '/rideapp', '/api/'],
             },
         ],
         sitemap: 'https://baselink.app/sitemap.xml',
