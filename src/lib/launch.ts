@@ -28,9 +28,11 @@
 //   1. UI      — MilitaryRideShareApp.tsx shows the pre-launch banner and
 //                routes "Request a Ride" to the waitlist instead of the
 //                real booking flow.
-//   2. Client  — createRideRequest() in src/lib/firebase/rides.ts refuses to
-//                write a ride document at all when not launched, so the
-//                gate holds even if some other UI path called it directly.
+//   2. Client  — createRideRequest(), acceptRide(), startRide(), and
+//                completeRide() in src/lib/firebase/rides.ts each
+//                independently refuse to write when not launched, so the
+//                gate holds on every ride-status transition even if some
+//                other UI path called one of them directly.
 //   3. Server  — the Stripe PaymentIntent route
 //                (src/app/api/stripe/payment/create-intent/route.ts) refuses
 //                to create a real charge when not launched, independent of

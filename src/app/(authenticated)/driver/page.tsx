@@ -122,7 +122,7 @@ function DriverContent() {
 
             {activeRide ? (
                 <div className="bg-white p-6 rounded-lg shadow space-y-4">
-                    <h3 className="text-lg font-semibold">Your active ride</h3>
+                    <h2 className="text-lg font-semibold">Your active ride</h2>
                     <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-blue-600" />
                         <span>{activeRide.pickup.address}</span>
@@ -153,7 +153,7 @@ function DriverContent() {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    <h3 className="text-lg font-semibold">Open ride requests</h3>
+                    <h2 className="text-lg font-semibold">Open ride requests</h2>
                     {onboardingComplete && openRides.length === 0 && (
                         <p className="text-gray-600 text-sm">
                             No open ride requests right now.

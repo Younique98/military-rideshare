@@ -131,11 +131,11 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 w-full">
+        <main className="flex items-center justify-center min-h-screen bg-gray-100 w-full">
             <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+                <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
                     {mode === 'login' ? 'Log In' : 'Register'}
-                </h2>
+                </h1>
                 {error && <p className="text-red-500 mb-4">{error}</p>}
 
                 <div className="mb-4">
@@ -209,6 +209,6 @@ export const AuthForm = ({ mode = 'login' }: IAuthForm) => {
                     </div>
                 )}
             </div>
-        </div>
+        </main>
     )
 }
