@@ -22,6 +22,7 @@ import { isPlatformLaunched, PLATFORM_NOT_LAUNCHED_MESSAGE } from '@/lib/launch'
 import { createRideRequest, subscribeToRide } from '@/lib/firebase/rides'
 import { joinWaitlist } from '@/lib/firebase/waitlist'
 import { estimateFareCents } from '@/lib/fare'
+import { RidePaymentForm } from './payment/RidePaymentForm'
 import type { Ride } from '@/types/ride'
 
 const MilitaryRideShareApp = () => {
@@ -666,7 +667,9 @@ const MilitaryRideShareApp = () => {
                                         </AlertDescription>
                                     </Alert>
                                 ) : ride.status === 'COMPLETED' ? (
-                                    <PayForRide ride={ride} onDone={resetRideFlow} />
+                                    <div className="text-left">
+                                        <RidePaymentForm ride={ride} />
+                                    </div>
                                 ) : ride.status === 'PAID' ? (
                                     <Alert>
                                         <AlertTitle className="flex items-center justify-center gap-2">
@@ -690,87 +693,6 @@ const MilitaryRideShareApp = () => {
                         ) : null}
             </main>
         </div>
-    )
-}
-
-// Rider-side payment trigger for a COMPLETED ride. Calls the server-side
-// PaymentIntent route (src/app/api/stripe/payment/create-intent/route.ts),
-// which itself independently refuses to create a real charge unless
-// NEXT_PUBLIC_PLATFORM_LAUNCHED is "true" — this component can only ever be
-// reached from a ride that was created for real in the first place, which
-// already required that flag, but the server checks it again regardless.
-//
-// This creates the PaymentIntent (split via Stripe Connect's
-// application_fee_amount + transfer_data.destination) and surfaces its
-// client secret. Collecting real card details (Stripe Elements) is
-// deliberately out of scope here — see the PR description — so this stops
-// short of an actual charge; wiring up Stripe Elements is the next step
-// before this can take a real card.
-function PayForRide({ ride, onDone }: { ride: Ride; onDone: () => void }) {
-    const { user } = useAuth()
-    const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
-    const [error, setError] = useState<string | null>(null)
-
-    const handlePay = async () => {
-        if (!user) return
-        setStatus('loading')
-        setError(null)
-        try {
-            const idToken = await user.getIdToken()
-            const response = await fetch('/api/stripe/payment/create-intent', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${idToken}`,
-                },
-                body: JSON.stringify({ rideId: ride.id }),
-            })
-            const data = await response.json()
-            if (!response.ok) {
-                throw new Error(data.error || 'Could not start payment')
-            }
-            setStatus('ready')
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Could not start payment')
-            setStatus('error')
-        }
-    }
-
-    if (status === 'ready') {
-        return (
-            <Alert>
-                <AlertTitle className="flex items-center justify-center gap-2">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Payment started
-                </AlertTitle>
-                <AlertDescription>
-                    Your card charge is processing — this ride will show as
-                    Paid once Stripe confirms it.
-                    <button
-                        onClick={onDone}
-                        className="mt-4 block w-full py-2 border rounded-lg hover:bg-gray-100"
-                    >
-                        Back to Home
-                    </button>
-                </AlertDescription>
-            </Alert>
-        )
-    }
-
-    return (
-        <Alert>
-            <AlertTitle>Trip complete</AlertTitle>
-            <AlertDescription>
-                {error && <p className="text-red-600 mb-2">{error}</p>}
-                <button
-                    onClick={handlePay}
-                    disabled={status === 'loading'}
-                    className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:bg-gray-300"
-                >
-                    {status === 'loading' ? 'Starting payment…' : 'Pay Now'}
-                </button>
-            </AlertDescription>
-        </Alert>
     )
 }
 
